@@ -13,7 +13,7 @@ Landing page de calças para mulheres até 1,60m. HTML/CSS/JS puro, sem build.
 - Medidas (altura, cintura, quadril, comprimento da perna) salvas em localStorage; tabela cintura→tamanho única (`TABELA_CINTURA`).
 - Provador 3D: ossos rígidos, sem física de tecido nem oclusão do corpo. GLB precisa estar de pé, pernas retas, Y pra cima, sem rig. Juntas do rig por fração da altura em `GEO`. Coxas/canelas nascem onde o osso pai levou a junta (continuidade). Modelo de frente: lado x<cx = perna direita = landmarks pares.
 - Bug já resolvido: bones como filhos do SkinnedMesh têm matrixWorld recalculado a cada render (force cascata) — por isso ficam fora da cena.
-- Publicado como Artifact: https://claude.ai/artifact/DsJdtgjSgV16W2vSsatLWZ (republicar passando `files` com `img/*`, `loja.js`, `provador.js`).
+- Publicado: GitHub Pages https://m7wdev.github.io/seu-jeito/ (repo M7WDev/seu-jeito, branch main, deploy = git push). Artifact https://claude.ai/artifact/DsJdtgjSgV16W2vSsatLWZ só pra layout — sandbox bloqueia câmera. Netlify (seu-jeito-provador) travado por Forbidden no prod.
 - Servidor local: `preview_start` "seu-jeito" (launch.json em Downloads/.claude) → http://localhost:8000.
 
 ## Pendente
