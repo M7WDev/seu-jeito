@@ -45,17 +45,13 @@ async function fundir(malhas) {
   const mats = malhas.map(m => { const mat = m.material.clone(); mat.side = THREE.DoubleSide; return mat; });
   return new THREE.Mesh(geo, mats);
 }
-// deixa a calça de pé: eixo mais longo vira Y, cós pra cima (o lado com as duas pernas separadas é a barra)
+// deixa a calça de pé: eixo mais longo vira Y (Z-up → Y-up). Cós = topo do arquivo; `produto.inverter` se vier ao contrário.
+// ponytail: tentei adivinhar o topo pela "fenda entre as pernas"; falha em wide leg (barra encosta). Melhor confiar no arquivo.
 function normalizar(geo) {
   geo.computeBoundingBox(); const t = geo.boundingBox.max.clone().sub(geo.boundingBox.min);
   if (t.z > t.y && t.z > t.x) geo.rotateX(-Math.PI / 2);
   else if (t.x > t.y && t.x > t.z) geo.rotateZ(Math.PI / 2);
-  geo.computeBoundingBox();
-  const bb = geo.boundingBox, h = bb.max.y - bb.min.y, cx = (bb.min.x + bb.max.x) / 2, pos = geo.attributes.position;
-  // fatia a 12% de cada ponta: quantos vértices perto do centro em x? cós tem, barra (duas pernas) não
-  const perto = (y0, y1) => { let n = 0; for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y > y0 && y < y1 && Math.abs(pos.getX(i) - cx) < (bb.max.x - bb.min.x) * .08) n++; } return n; };
-  const topo = perto(bb.max.y - h * .15, bb.max.y - h * .05), base = perto(bb.min.y + h * .05, bb.min.y + h * .15);
-  if (base > topo) geo.rotateZ(Math.PI);
+  if (produto?.inverter) geo.rotateZ(Math.PI);
   geo.computeBoundingBox(); geo.translate(-(geo.boundingBox.min.x + geo.boundingBox.max.x) / 2, 0, 0);
   geo.computeVertexNormals();
   return geo;
@@ -106,13 +102,14 @@ function autoRig(mesh) {
 
 /* ---------- posiciona um osso: leva o segmento de repouso (A→B, -Y) até o alvo (P→Q) na tela ---------- */
 const m = {};
+let yaw = 0; // giro do corpo em torno do eixo vertical (rad), a partir da profundidade dos quadris
 function poseOsso(nome, P, Q, escalaX, alongar = 1) {
   const b = ossos.find(o => o.name === nome), { A, B } = bind[nome];
   const L0 = A[1] - B[1], L = Math.hypot(Q.x - P.x, Q.y - P.y) * alongar;
   const ang = Math.atan2(Q.y - P.y, Q.x - P.x) - Math.PI / 2; // após o flip em Y, o osso aponta pra +Y da tela; gira até P→Q
   // tela tem y pra baixo; modelo tem y pra cima → escala Y negativa inverte
-  m.t.makeTranslation(P.x, P.y, 0); m.r.makeRotationZ(ang); m.s.makeScale(escalaX, -L / L0, escalaX);
-  b.matrixWorld.copy(m.t).multiply(m.r).multiply(m.s); // boneInverse (= T(-A)) já leva o vértice pro espaço do osso
+  m.t.makeTranslation(P.x, P.y, 0); m.r.makeRotationZ(ang); m.s.makeScale(escalaX, -L / L0, escalaX); m.y.makeRotationY(yaw);
+  b.matrixWorld.copy(m.t).multiply(m.r).multiply(m.s).multiply(m.y); // boneInverse (= T(-A)) já leva o vértice pro espaço do osso
 }
 
 // onde o osso `nome` (já posicionado) leva o ponto [x,y] do modelo
@@ -154,12 +151,14 @@ window.abrirProvador = async function (p) {
 
 function montarCena(malha, canvas, W, H) {
   document.querySelector('#provador .cam').style.aspectRatio = `${W}/${H}`;
-  ['t', 'r', 's'].forEach(k => m[k] = new THREE.Matrix4()); v3.v = new THREE.Vector3();
+  ['t', 'r', 's', 'y'].forEach(k => m[k] = new THREE.Matrix4()); v3.v = new THREE.Vector3();
   renderer ||= new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(W, H, false); renderer.setPixelRatio(1);
   scene = new THREE.Scene();
-  const luz = new THREE.DirectionalLight(0xffffff, 1.4); luz.position.set(-1, -1, 2);
-  scene.add(new THREE.AmbientLight(0xffffff, 1.6), luz);
+  // y da tela cresce pra baixo → "céu" da hemisférica fica em -Y
+  const ceu = new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 2.2); ceu.position.set(0, -1, 0);
+  const luz = new THREE.DirectionalLight(0xffffff, 1.2); luz.position.set(-1, -1, 2);
+  scene.add(ceu, luz);
   cam = new THREE.OrthographicCamera(0, W, 0, H, -5000, 5000); cam.position.z = 1000; // 1 unidade = 1 pixel, y pra baixo
   skinned = autoRig(malha); scene.add(skinned);
 }
@@ -173,13 +172,17 @@ function ponto(lm, i, W, H) {
 
 function desenhar(r, W = video.videoWidth, H = video.videoHeight) {
   const status = document.querySelector('#provador .status'), lm = r.poseLandmarks;
-  const ok = lm && [23, 24, 25, 26, 27, 28].every(i => lm[i].visibility > .5);
+  // de lado uma perna some atrás da outra: exige só quadris + pelo menos um joelho/tornozelo de cada lado razoáveis
+  const ok = lm && lm[23].visibility > .5 && lm[24].visibility > .5 && [25, 26, 27, 28].every(i => lm[i].visibility > .25);
   skinned.visible = !!ok;
   if (ok) {
     const P = i => ponto(lm, i, W, H);
     const qE = P(23), qD = P(24), jE = P(25), jD = P(26), tE = P(27), tD = P(28);
     const quadril = { x: (qE.x + qD.x) / 2, y: (qE.y + qD.y) / 2 };
-    const largQ = Math.hypot(qE.x - qD.x, qE.y - qD.y);
+    // largura do quadril em 3D (z do MediaPipe está na escala da largura da imagem) — não afina quando vira de lado
+    const dz = (lm[23].z - lm[24].z) * W;
+    const largQ = Math.hypot(qE.x - qD.x, qE.y - qD.y, dz);
+    yaw = Math.atan2(dz, lm[23].x * W - lm[24].x * W); // perna esquerda (23) mais perto → gira o lado xD pra câmera
     const esc = (largQ * 1.75) / bind.largura; // modelo → pixels (quadril real ≈ 1.75× distância entre as juntas)
     // cós segue o quadril; coxas nascem onde o cós levou a junta (continuidade), canelas idem a partir da coxa
     poseOsso('cos', { x: quadril.x, y: quadril.y - largQ * .55 }, { x: quadril.x, y: quadril.y + largQ * .4 }, esc);

@@ -17,7 +17,7 @@ Landing page de calças para mulheres até 1,60m. HTML/CSS/JS puro, sem build.
 - Servidor local: `preview_start` "seu-jeito" (launch.json em Downloads/.claude) → http://localhost:8000.
 
 ## Pendente
-- GLBs atuais são extrusões simples (43KB, só POSITION, Z-up → `normalizar()` corrige). Malha com volume real melhora muito o visual.
+- GLBs "volumétricos" ainda são placas extrudadas (44% das normais ±Z). Sem gradiente de volume nas pernas. Cós = topo do arquivo (Z-up); `produto.inverter` se vier ao contrário. Precisa de malha tubular (image-to-3D tipo Meshy/Tripo) pra parecer tecido.
 - Número real do WhatsApp em `loja.js`.
 - Fotos em alta do cliente (vindo).
 - Preços reais (placeholders em `PRODUTOS`).
