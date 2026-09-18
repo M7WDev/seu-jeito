@@ -9,9 +9,9 @@ const PRODUTOS = [
   { id: 'reta', cor: '#4a2f22', glb: 'img/calca-reta.gltf',        nome: 'Calça Reta',        sub: 'Versátil sempre',       preco: 189.9, img: 'img/reta.jpg' },
   { id: 'jeans', cor: '#8fa9c4', glb: 'img/calca-jeans.gltf',       nome: 'Calça Jeans',       sub: 'O essencial do dia a dia', preco: 179.9, img: 'img/jeans.jpg' },
 ];
-const TAMANHOS = [34, 36, 38, 40, 42, 44, 46];
+const TAMANHOS = ['PP', 'P', 'M', 'G'];
 // cintura em cm -> tamanho. ponytail: tabela única p/ todos os modelos; por modelo quando a modelagem divergir
-const TABELA_CINTURA = { 34: 62, 36: 66, 38: 70, 40: 74, 42: 78, 44: 82, 46: 86 };
+const TABELA_CINTURA = { PP: 0, P: 70, M: 78, G: 86 }; // cintura mínima (cm) de cada tamanho
 
 const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const ls = {
@@ -21,8 +21,8 @@ const ls = {
 let sacola = ls.get('sacola', []);
 
 function sugerirTamanho(cintura) {
-  let t = 34;
-  for (const [tam, min] of Object.entries(TABELA_CINTURA)) if (cintura >= min) t = +tam;
+  let t = TAMANHOS[0];
+  for (const [tam, min] of Object.entries(TABELA_CINTURA)) if (cintura >= min) t = tam;
   return t;
 }
 
