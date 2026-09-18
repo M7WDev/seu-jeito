@@ -1,6 +1,6 @@
 # Seu Jeito — landing + loja
 
-Landing page de calças para mulheres até 1,60m. HTML/CSS/JS puro, sem build.
+Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 
 ## Arquivos
 - `index.html` — página inteira (CSS inline). Seções: hero, perks, "feitas para você", modelos, faixa, depoimentos, CTA, footer.
