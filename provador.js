@@ -97,18 +97,20 @@ function autoRig(mesh) {
   const sk = new THREE.SkinnedMesh(geo, mesh.material);
   // ossos fora da cena: ninguém recalcula o matrixWorld que setamos na mão
   sk.bind(new THREE.Skeleton(ossos)); sk.frustumCulled = false;
+  sk.bindMode = 'detached'; // senão o modo 'attached' cancela o skinned.scale (bindMatrixInverse = inverso do matrixWorld)
   return sk;
 }
 
 /* ---------- posiciona um osso: leva o segmento de repouso (A→B, -Y) até o alvo (P→Q) na tela ---------- */
 const m = {};
-let yaw = 0; // giro do corpo em torno do eixo vertical (rad), a partir da profundidade dos quadris
-function poseOsso(nome, P, Q, escalaX, alongar = 1) {
+let yaw = 0;  // giro do corpo em torno do eixo vertical (rad), a partir da profundidade dos quadris
+let esc = 1;  // modelo → pixels; vai em skinned.scale (uniforme), não nos ossos — escala anisotrópica entorta as normais e a luz fica chapada
+function poseOsso(nome, P, Q, alongar = 1) {
   const b = ossos.find(o => o.name === nome), { A, B } = bind[nome];
-  const L0 = A[1] - B[1], L = Math.hypot(Q.x - P.x, Q.y - P.y) * alongar;
+  const L0 = A[1] - B[1], L = Math.hypot(Q.x - P.x, Q.y - P.y) * alongar / esc;
   const ang = Math.atan2(Q.y - P.y, Q.x - P.x) - Math.PI / 2; // após o flip em Y, o osso aponta pra +Y da tela; gira até P→Q
-  // tela tem y pra baixo; modelo tem y pra cima → escala Y negativa inverte
-  m.t.makeTranslation(P.x, P.y, 0); m.r.makeRotationZ(ang); m.s.makeScale(escalaX, -L / L0, escalaX); m.y.makeRotationY(yaw);
+  // tela tem y pra baixo; modelo tem y pra cima. -X e -Y = rotação de 180° em Z: inverte Y sem virar as faces do avesso
+  m.t.makeTranslation(P.x / esc, P.y / esc, 0); m.r.makeRotationZ(ang); m.s.makeScale(-1, -L / L0, 1); m.y.makeRotationY(yaw);
   b.matrixWorld.copy(m.t).multiply(m.r).multiply(m.s).multiply(m.y); // boneInverse (= T(-A)) já leva o vértice pro espaço do osso
 }
 
@@ -117,7 +119,7 @@ const v3 = { v: null };
 function junta(nome, [x, y]) {
   const b = ossos.find(o => o.name === nome), inv = ossos.indexOf(b);
   v3.v.set(x, y, 0).applyMatrix4(skinned.skeleton.boneInverses[inv]).applyMatrix4(b.matrixWorld);
-  return { x: v3.v.x, y: v3.v.y };
+  return { x: v3.v.x * esc, y: v3.v.y * esc };
 }
 
 /* ---------- ciclo ---------- */
@@ -156,10 +158,13 @@ function montarCena(malha, canvas, W, H) {
   renderer.setSize(W, H, false); renderer.setPixelRatio(1);
   scene = new THREE.Scene();
   // y da tela cresce pra baixo → "céu" da hemisférica fica em -Y
-  const ceu = new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 2.2); ceu.position.set(0, -1, 0);
-  const luz = new THREE.DirectionalLight(0xffffff, 1.2); luz.position.set(-1, -1, 2);
+  const ceu = new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.4); ceu.position.set(0, -1, 0);
+  const luz = new THREE.DirectionalLight(0xffffff, 1.6); luz.position.set(-2, -1, 1.5);
   scene.add(ceu, luz);
-  cam = new THREE.OrthographicCamera(0, W, 0, H, -5000, 5000); cam.position.z = 1000; // 1 unidade = 1 pixel, y pra baixo
+  // 1 unidade = 1 pixel, y pra baixo. O flip fica na cena (scale.y = -1), não na câmera: projeção com top<bottom inverte
+  // a orientação das faces e o renderer passa a desenhar o avesso (normais constantes, luz chapada).
+  cam = new THREE.OrthographicCamera(0, W, 0, -H, -5000, 5000); cam.position.z = 1000;
+  scene.scale.y = -1;
   skinned = autoRig(malha); scene.add(skinned);
 }
 
@@ -183,14 +188,15 @@ function desenhar(r, W = video.videoWidth, H = video.videoHeight) {
     const dz = (lm[23].z - lm[24].z) * W;
     const largQ = Math.hypot(qE.x - qD.x, qE.y - qD.y, dz);
     yaw = Math.atan2(dz, lm[23].x * W - lm[24].x * W); // perna esquerda (23) mais perto → gira o lado xD pra câmera
-    const esc = (largQ * 1.75) / bind.largura; // modelo → pixels (quadril real ≈ 1.75× distância entre as juntas)
+    esc = (largQ * 1.75) / bind.largura; // quadril real ≈ 1.75× distância entre as juntas
+    skinned.scale.setScalar(esc); skinned.updateMatrixWorld();
     // cós segue o quadril; coxas nascem onde o cós levou a junta (continuidade), canelas idem a partir da coxa
-    poseOsso('cos', { x: quadril.x, y: quadril.y - largQ * .55 }, { x: quadril.x, y: quadril.y + largQ * .4 }, esc);
-    // modelo de frente pra câmera: lado x<cx = perna direita da pessoa = landmarks pares (24/26/28)
-    poseOsso('coxaE', junta('cos', bind.coxaE.A), jD, esc, 1.06);
-    poseOsso('coxaD', junta('cos', bind.coxaD.A), jE, esc, 1.06);
-    poseOsso('canelaE', junta('coxaE', bind.canelaE.A), tD, esc, 1.05);
-    poseOsso('canelaD', junta('coxaD', bind.canelaD.A), tE, esc, 1.05);
+    poseOsso('cos', { x: quadril.x, y: quadril.y - largQ * .55 }, { x: quadril.x, y: quadril.y + largQ * .4 });
+    // a escala -X espelha o modelo: lado x<cx cai na direita da tela = perna esquerda da pessoa (23/25/27)
+    poseOsso('coxaE', junta('cos', bind.coxaE.A), jE, 1.06);
+    poseOsso('coxaD', junta('cos', bind.coxaD.A), jD, 1.06);
+    poseOsso('canelaE', junta('coxaE', bind.canelaE.A), tE, 1.05);
+    poseOsso('canelaD', junta('coxaD', bind.canelaD.A), tD, 1.05);
     status.textContent = '';
   } else status.textContent = 'Afaste-se até o corpo inteiro aparecer.';
   renderer.render(scene, cam);
