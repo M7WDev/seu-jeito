@@ -11,7 +11,10 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 ## Decisões
 - Sem backend: pedido vira mensagem no WhatsApp com itens, dados e medidas. Pix/cartão exige gateway + servidor.
 - Medidas (altura, cintura, quadril, comprimento da perna) salvas em localStorage; tabela cintura→tamanho única (`TABELA_CINTURA`).
-- Provador 3D: ossos rígidos, sem física de tecido nem oclusão do corpo. GLB precisa estar de pé, pernas retas, Y pra cima, sem rig. Juntas do rig por fração da altura em `GEO`. Coxas/canelas nascem onde o osso pai levou a junta (continuidade). Modelo de frente: lado x<cx = perna direita = landmarks pares.
+- Provador 3D: ossos rígidos, sem física de tecido (dobras). Tem oclusão, volume por medidas e luz da cena. GLB precisa estar de pé, pernas retas, Y pra cima, sem rig. Juntas do rig por fração da altura em `GEO`. Coxas/canelas nascem onde o osso pai levou a junta (continuidade). Modelo de frente: lado x<cx = perna direita = landmarks pares.
+- Oclusão: `enableSegmentation` do próprio Pose (não precisa carregar SelfieSegmentation). O canvas visível é 2D e compõe: roupa → `destination-in` na máscara da pessoa → `destination-out` nas cápsulas dos antebraços (só quando z do braço < z do quadril). O WebGL renderiza num canvas à parte.
+- Volume: `poseOsso(..., k)` escala X/Z do osso. Cós = (cintura/quadril)/0,78 das medidas salvas; pernas = 3,1/(comprimento da perna ÷ largura do quadril), ambos com clamp. Sem medidas, k=1.
+- Luz da cena: média do frame (16x16) a cada 15 frames vira cor/intensidade da hemisférica e da direcional.
 - Escala modelo→px vai em `skinned.scale` (uniforme) + `bindMode = 'detached'`; escala anisotrópica nos ossos entorta normais. Flip Y fica em `scene.scale.y = -1`, não na câmera (top<bottom inverte winding e o renderer desenha o avesso = luz chapada). Ossos usam scale(-1,-k,1) = rotação, por isso perna xE ↔ landmarks ímpares (23/25/27).
 - Bug já resolvido: bones como filhos do SkinnedMesh têm matrixWorld recalculado a cada render (force cascata) — por isso ficam fora da cena.
 - Publicado: GitHub Pages https://m7wdev.github.io/seu-jeito/ (repo M7WDev/seu-jeito, branch main, deploy = git push). Artifact https://claude.ai/artifact/DsJdtgjSgV16W2vSsatLWZ só pra layout — sandbox bloqueia câmera. Netlify (seu-jeito-provador) travado por Forbidden no prod.

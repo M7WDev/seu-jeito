@@ -9,6 +9,8 @@ const GEO = { quadril: .15, gancho: .30, joelho: .60 };
 
 let THREE, pose, video, produto, rodando = false, suave = {};
 let renderer, scene, cam, skinned, ossos, bind; // bind = geometria de repouso por osso
+let ctx, ctxLuz, ceu, luz, medidas;             // ctx = compositor 2D; ctxLuz = 16x16 p/ ler a luz da cena
+const ARMS = [[13, 15], [14, 16], [15, 19], [16, 20]]; // cotovelo→pulso e pulso→dedos
 
 function script(src) {
   return new Promise((ok, err) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = err; document.head.appendChild(s); });
@@ -105,12 +107,12 @@ function autoRig(mesh) {
 const m = {};
 let yaw = 0;  // giro do corpo em torno do eixo vertical (rad), a partir da profundidade dos quadris
 let esc = 1;  // modelo → pixels; vai em skinned.scale (uniforme), não nos ossos — escala anisotrópica entorta as normais e a luz fica chapada
-function poseOsso(nome, P, Q, alongar = 1) {
+function poseOsso(nome, P, Q, alongar = 1, k = 1) {
   const b = ossos.find(o => o.name === nome), { A, B } = bind[nome];
   const L0 = A[1] - B[1], L = Math.hypot(Q.x - P.x, Q.y - P.y) * alongar / esc;
   const ang = Math.atan2(Q.y - P.y, Q.x - P.x) - Math.PI / 2; // após o flip em Y, o osso aponta pra +Y da tela; gira até P→Q
   // tela tem y pra baixo; modelo tem y pra cima. -X e -Y = rotação de 180° em Z: inverte Y sem virar as faces do avesso
-  m.t.makeTranslation(P.x / esc, P.y / esc, 0); m.r.makeRotationZ(ang); m.s.makeScale(-1, -L / L0, 1); m.y.makeRotationY(yaw);
+  m.t.makeTranslation(P.x / esc, P.y / esc, 0); m.r.makeRotationZ(ang); m.s.makeScale(-k, -L / L0, k); m.y.makeRotationY(yaw);
   b.matrixWorld.copy(m.t).multiply(m.r).multiply(m.s).multiply(m.y); // boneInverse (= T(-A)) já leva o vértice pro espaço do osso
 }
 
@@ -125,6 +127,7 @@ function junta(nome, [x, y]) {
 /* ---------- ciclo ---------- */
 window.abrirProvador = async function (p) {
   produto = p; suave = {};
+  try { medidas = JSON.parse(localStorage.getItem('medidas')); } catch { medidas = null; }
   const dlg = document.getElementById('provador'), status = dlg.querySelector('.status');
   dlg.querySelector('h3').textContent = `Provador — ${p.nome}`;
   status.textContent = 'Carregando…'; dlg.showModal();
@@ -139,7 +142,8 @@ window.abrirProvador = async function (p) {
     montarCena(malha, canvas, video.videoWidth, video.videoHeight);
     if (!pose) {
       pose = new Pose({ locateFile: f => `${CDN}/${f}` });
-      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: .6, minTrackingConfidence: .6 });
+      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: true, smoothSegmentation: true,
+        minDetectionConfidence: .6, minTrackingConfidence: .6 });
       pose.onResults(desenhar);
     }
     status.textContent = 'Afaste-se até o corpo inteiro aparecer.';
@@ -154,12 +158,15 @@ window.abrirProvador = async function (p) {
 function montarCena(malha, canvas, W, H) {
   document.querySelector('#provador .cam').style.aspectRatio = `${W}/${H}`;
   ['t', 'r', 's', 'y'].forEach(k => m[k] = new THREE.Matrix4()); v3.v = new THREE.Vector3();
-  renderer ||= new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  // o canvas visível é 2D (compositor: recorta a roupa na silhueta e apaga os braços); o 3D vai num canvas à parte
+  canvas.width = W; canvas.height = H; ctx = canvas.getContext('2d');
+  ctxLuz = document.createElement('canvas'); ctxLuz.width = ctxLuz.height = 16; ctxLuz = ctxLuz.getContext('2d', { willReadFrequently: true });
+  renderer ||= new THREE.WebGLRenderer({ canvas: document.createElement('canvas'), alpha: true, antialias: true });
   renderer.setSize(W, H, false); renderer.setPixelRatio(1);
   scene = new THREE.Scene();
   // y da tela cresce pra baixo → "céu" da hemisférica fica em -Y
-  const ceu = new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.4); ceu.position.set(0, -1, 0);
-  const luz = new THREE.DirectionalLight(0xffffff, 1.6); luz.position.set(-2, -1, 1.5);
+  ceu = new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.4); ceu.position.set(0, -1, 0);
+  luz = new THREE.DirectionalLight(0xffffff, 1.6); luz.position.set(-2, -1, 1.5);
   scene.add(ceu, luz);
   // 1 unidade = 1 pixel, y pra baixo. O flip fica na cena (scale.y = -1), não na câmera: projeção com top<bottom inverte
   // a orientação das faces e o renderer passa a desenhar o avesso (normais constantes, luz chapada).
@@ -173,6 +180,48 @@ async function loop() { if (!rodando) return; await pose.send({ image: video });
 function ponto(lm, i, W, H) {
   const alvo = { x: lm[i].x * W, y: lm[i].y * H }, s = suave[i] || alvo;
   return (suave[i] = { x: s.x + (alvo.x - s.x) * .45, y: s.y + (alvo.y - s.y) * .45 });
+}
+
+// luz da cena: média do frame vira cor/intensidade da ambiente, pra roupa não "brilhar" num quarto escuro
+let frames = 0;
+function casarLuz() {
+  if (!video || frames++ % 15) return;
+  ctxLuz.drawImage(video, 0, 0, 16, 16);
+  const d = ctxLuz.getImageData(0, 0, 16, 16).data;
+  let R = 0, G = 0, B = 0;
+  for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; }
+  const n = d.length / 4, brilho = (R + G + B) / (3 * n * 255);
+  ceu.color.setRGB(R / (n * 255), G / (n * 255), B / (n * 255));
+  ceu.intensity = .6 + brilho * 1.6;   // quarto escuro → roupa escura
+  luz.intensity = .5 + brilho * 1.8;
+}
+
+// braços/mãos na frente das pernas: cápsulas no traçado do antebraço, só quando estão mais perto que o quadril
+function apagarBracos(lm, W, H) {
+  const zq = (lm[23].z + lm[24].z) / 2;
+  const ombro = Math.hypot((lm[11].x - lm[12].x) * W, (lm[11].y - lm[12].y) * H) || W * .3;
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = ombro * .30;
+  for (const [a, b] of ARMS) {
+    if (lm[a].visibility < .4 || lm[b].visibility < .4) continue;
+    if ((lm[a].z + lm[b].z) / 2 > zq) continue;        // atrás do quadril: não apaga
+    ctx.beginPath();
+    ctx.moveTo(lm[a].x * W, lm[a].y * H); ctx.lineTo(lm[b].x * W, lm[b].y * H); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// compõe: roupa → recorta na silhueta da pessoa → apaga os braços que estão na frente
+function compor(r, W, H, ok) {
+  ctx.clearRect(0, 0, W, H);
+  if (!ok) return;
+  ctx.drawImage(renderer.domElement, 0, 0, W, H);
+  if (r.segmentationMask) {
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(r.segmentationMask, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  apagarBracos(r.poseLandmarks, W, H);
 }
 
 function desenhar(r, W = video.videoWidth, H = video.videoHeight) {
@@ -190,16 +239,24 @@ function desenhar(r, W = video.videoWidth, H = video.videoHeight) {
     yaw = Math.atan2(dz, lm[23].x * W - lm[24].x * W); // perna esquerda (23) mais perto → gira o lado xD pra câmera
     esc = (largQ * 1.75) / bind.largura; // quadril real ≈ 1.75× distância entre as juntas
     skinned.scale.setScalar(esc); skinned.updateMatrixWorld();
+    // espessura por segmento: a calça segue o corpo em vez de ser um tubo de largura fixa.
+    // cós = razão cintura/quadril da cliente (0,78 é a proporção média do modelo); pernas afinam junto.
+    const razao = medidas ? Math.min(1.15, Math.max(.8, (medidas.cintura / medidas.quadril) / .78)) : 1;
+    // coxa/canela: perna longa em relação ao quadril = perna mais fina (e vice-versa)
+    const perna = Math.hypot(tE.x - qE.x, tE.y - qE.y) / largQ;
+    const fino = Math.min(1.12, Math.max(.88, 3.1 / perna));
     // cós segue o quadril; coxas nascem onde o cós levou a junta (continuidade), canelas idem a partir da coxa
-    poseOsso('cos', { x: quadril.x, y: quadril.y - largQ * .55 }, { x: quadril.x, y: quadril.y + largQ * .4 });
+    poseOsso('cos', { x: quadril.x, y: quadril.y - largQ * .55 }, { x: quadril.x, y: quadril.y + largQ * .4 }, 1, razao);
     // a escala -X espelha o modelo: lado x<cx cai na direita da tela = perna esquerda da pessoa (23/25/27)
-    poseOsso('coxaE', junta('cos', bind.coxaE.A), jE, 1.06);
-    poseOsso('coxaD', junta('cos', bind.coxaD.A), jD, 1.06);
-    poseOsso('canelaE', junta('coxaE', bind.canelaE.A), tE, 1.05);
-    poseOsso('canelaD', junta('coxaD', bind.canelaD.A), tD, 1.05);
+    poseOsso('coxaE', junta('cos', bind.coxaE.A), jE, 1.06, fino);
+    poseOsso('coxaD', junta('cos', bind.coxaD.A), jD, 1.06, fino);
+    poseOsso('canelaE', junta('coxaE', bind.canelaE.A), tE, 1.05, fino);
+    poseOsso('canelaD', junta('coxaD', bind.canelaD.A), tD, 1.05, fino);
+    casarLuz();
     status.textContent = '';
   } else status.textContent = 'Afaste-se até o corpo inteiro aparecer.';
   renderer.render(scene, cam);
+  compor(r, W, H, ok);
 }
 
 window.fecharProvador = function () {
@@ -210,4 +267,5 @@ window.fecharProvador = function () {
 };
 
 // exposto pra teste sem câmera
-window._provador = { carregarLibs, carregarMalha, montarCena, desenhar, get: () => ({ THREE, scene, cam, skinned, ossos, bind }) };
+window._provador = { carregarLibs, carregarMalha, montarCena, desenhar, casarLuz,
+  setVideo: v => { video = v; }, get: () => ({ THREE, scene, cam, skinned, ossos, bind, ceu, luz, ctx }) };
