@@ -3,8 +3,12 @@
 Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 
 ## Arquivos
-- `index.html` — página inteira (CSS inline). Seções: hero, perks, "feitas para você", modelos, faixa, depoimentos, CTA, footer.
-- `loja.js` — catálogo (`PRODUTOS`), sacola em localStorage, medidas na 1ª compra, checkout → WhatsApp (`WHATSAPP` no topo).
+- `index.html` — página inteira, refeita em 2026-11-19 com a skill `design-taste-frontend` (tasteskill). Seções: hero (produto, foto sentada), #modelos (4 cards com tamanho/sacola/provador), #detalhes (momento photo-chapters: cintura, bolso, sarja, botão), #comprimento (faixa escura + botão do provador), #tamanhos (tabela PP–G por cintura), #duvidas (FAQ), footer escuro com o CTA. Depoimentos removidos (eram inventados; voltar só com reviews reais).
+- `assets/` — cópia parcial do kit da skill (system.css/js, motion, layout, moments/photo-chapters). Não editar: é do kit. CSS próprio fica no `<style>` da página.
+- Look: cores do logo (creme #f7f3ee, marrom #5b3a26, tinta #2c241d), fonte Albert Sans, botões "block". Sacola e diálogos usam `<dialog>` com transição de entrada (fade + blur + escala, @starting-style) inspirada no transitions.dev; badge da sacola pula ao adicionar; campo inválido treme.
+- Fotos: `img/<nome>.jpg` + `img/<nome>-640.jpg` (srcset). Novas vindas do `_assets`: cintura, bolso, sarja, botao, caixa, offwhite, sentada (cta.jpg sem a borda branca).
+- `loja.js` — catálogo (`PRODUTOS`), sacola (dialog `#sacola`) em localStorage, medidas na 1ª compra, checkout → WhatsApp (`WHATSAPP` no topo). Cards = `.tile[data-id]`; botão `[data-provar="<id>"]` abre o provador. Bug corrigido: tamanho ia como `NaN` na sacola (`+select.value`).
+- Checagem: `node <skill>/scripts/gate.mjs index.html` (Node 22+, Chrome). Saídas em `.taste-skill/` e `shots/` (ignorados no git). Waivers em `.taste-skill/waivers.json`: hero-lines (teste sintético de 40 caracteres) e card-layout (#modelos é line-up de propósito).
 - `provador.js` — provador 3D: câmera + MediaPipe Pose + Three.js (importmap, jsdelivr). Carrega `img/calca-<id>.gltf` (JSON com buffer base64 — o Artifact não serve .glb), auto-rig em 5 ossos (cós, coxas, canelas) por posição dos vértices, ossos posicionados direto via matrixWorld (fora da cena) com câmera ortográfica 1 unidade = 1 px. Sem GLB usa calça procedural (`cor` do produto). `window._provador` expõe funções pra testar sem câmera.
 - `img/` — fotos (JPG ≤1600px, q82) + `logo.svg` (limpa do Inkscape, marrom, sem a linha "FEITA PARA VOCÊ"). `_assets/` = PNGs originais, descartável.
 

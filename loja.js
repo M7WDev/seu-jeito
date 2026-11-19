@@ -28,13 +28,13 @@ function sugerirTamanho(cintura) {
 
 /* ---------- catálogo ---------- */
 function renderCatalogo() {
-  document.querySelectorAll('.card[data-id]').forEach(card => {
+  document.querySelectorAll('.tile[data-id]').forEach(card => {
     const p = PRODUTOS.find(x => x.id === card.dataset.id);
     card.querySelector('.preco').textContent = brl(p.preco);
     card.querySelector('select').innerHTML = TAMANHOS.map(t => `<option>${t}</option>`).join('');
     const med = ls.get('medidas');
     if (med) card.querySelector('select').value = sugerirTamanho(med.cintura);
-    card.querySelector('.add').onclick = () => adicionar(p.id, +card.querySelector('select').value);
+    card.querySelector('.add').onclick = () => adicionar(p.id, card.querySelector('select').value);
     card.querySelector('.provar').onclick = () => window.abrirProvador?.(p);
   });
 }
@@ -44,6 +44,7 @@ function adicionar(id, tam) {
   const item = sacola.find(i => i.id === id && i.tam === tam);
   item ? item.qtd++ : sacola.push({ id, tam, qtd: 1 });
   salvar(); abrirSacola();
+  const b = document.querySelector('.badge'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
 }
 function salvar() { ls.set('sacola', sacola); renderSacola(); }
 function renderSacola() {
@@ -67,8 +68,9 @@ function renderSacola() {
   });
   document.querySelectorAll('.rm').forEach(b => b.onclick = () => { sacola.splice(b.dataset.i, 1); salvar(); });
 }
-function abrirSacola() { document.body.classList.add('sacola-aberta'); }
-function fecharSacola() { document.body.classList.remove('sacola-aberta'); }
+const dlgSacola = () => document.getElementById('sacola');
+function abrirSacola() { if (!dlgSacola().open) dlgSacola().showModal(); }
+function fecharSacola() { dlgSacola().close(); }
 
 /* ---------- checkout ---------- */
 function abrirCheckout() {
@@ -111,7 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCatalogo(); renderSacola();
   document.querySelectorAll('[data-abrir-sacola]').forEach(a => a.onclick = e => { e.preventDefault(); abrirSacola(); });
   document.querySelector('.sacola-fechar').onclick = fecharSacola;
-  document.querySelector('.sacola-fundo').onclick = fecharSacola;
+  dlgSacola().onclick = e => { if (e.target === dlgSacola()) fecharSacola(); }; // clique no fundo fecha
+  document.querySelectorAll('[data-provar]').forEach(b => b.onclick = () => window.abrirProvador?.(PRODUTOS.find(p => p.id === b.dataset.provar)));
   document.querySelector('.finalizar').onclick = abrirCheckout;
   const f = document.querySelector('#checkout form');
   f.onsubmit = finalizar;
