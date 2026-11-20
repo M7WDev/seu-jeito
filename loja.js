@@ -90,7 +90,10 @@ function abrirCheckout() {
 }
 
 /* ---------- medidas pela câmera: a cliente só digita a altura ---------- */
+// o que a câmera mediu, antes de a cliente corrigir: vai no pedido quando ela muda algo (dado pra calibrar a medição)
+let medCamera = null;
 function resetMedicao(f) {
+  medCamera = null;
   ['cintura', 'quadril', 'comprimento'].forEach(k => { f[k].value = ''; f[k].required = false; });
   f.querySelector('.manual').hidden = true;
   const msg = f.querySelector('.medidas-camera'); msg.textContent = ''; msg.classList.remove('erro');
@@ -105,11 +108,16 @@ async function medirPelaCamera(f) {
     if (!window.medirCorpo) throw new Error('erro');
     const r = await window.medirCorpo(+f.altura.value);
     f.cintura.value = r.cintura; f.quadril.value = r.quadril; f.comprimento.value = r.comprimento;
-    msg.textContent = `Medimos: cintura ${r.cintura} cm, quadril ${r.quadril} cm, perna ${r.comprimento} cm.`;
+    medCamera = { cintura: r.cintura, quadril: r.quadril, comprimento: r.comprimento };
+    // a câmera erra alguns cm: mostra os valores em campos editáveis pra cliente conferir com a fita
+    f.querySelector('.manual').hidden = false;
+    ['cintura', 'quadril', 'comprimento'].forEach(k => (f[k].required = true));
+    msg.textContent = 'Pronto. Confira as medidas abaixo; se alguma estiver diferente da sua fita métrica, é só corrigir.';
     f.querySelector('.medir-btn').textContent = 'Medir de novo';
     calcSugestao(f);
   } catch (e) {
     if (e.message === 'cancelada') return;
+    medCamera = null;
     // sem câmera: libera os campos pra digitar, senão a cliente fica presa no checkout
     f.querySelector('.manual').hidden = false;
     ['cintura', 'quadril', 'comprimento'].forEach(k => (f[k].required = true));
@@ -119,6 +127,7 @@ async function medirPelaCamera(f) {
       : 'A medição não funciona neste navegador. Digite as medidas abaixo.';
   }
 }
+const ajustou = m => m?.camera && ['cintura', 'quadril', 'comprimento'].some(k => m.camera[k] !== m[k]);
 function calcSugestao(form) {
   const c = +form.cintura.value;
   form.querySelector('.sugestao').textContent = c ? `Sugerimos o tamanho ${sugerirTamanho(c)}` : '';
@@ -133,7 +142,7 @@ function finalizar(e) {
       f.querySelector('.medir-btn').focus();
       return;
     }
-    ls.set('medidas', { altura: +d.altura, cintura: +d.cintura, quadril: +d.quadril, comprimento: +d.comprimento });
+    ls.set('medidas', { altura: +d.altura, cintura: +d.cintura, quadril: +d.quadril, comprimento: +d.comprimento, camera: medCamera });
   }
   const med = ls.get('medidas');
   ls.set('cliente', { nome: d.nome, whats: d.whats, email: d.email, cep: d.cep, endereco: d.endereco });
@@ -141,7 +150,8 @@ function finalizar(e) {
   const total = sacola.reduce((s, i) => s + i.qtd * PRODUTOS.find(p => p.id === i.id).preco, 0);
   const msg = [`Olá! Quero fazer um pedido na Seu Jeito 👖`, '', ...linhas, `Total: ${brl(total)}`, '',
     `Nome: ${d.nome}`, `WhatsApp: ${d.whats}`, `E-mail: ${d.email}`, `Endereço: ${d.endereco} — CEP ${d.cep}`, '',
-    `Medidas: altura ${med.altura} cm, cintura ${med.cintura} cm, quadril ${med.quadril} cm, comprimento ${med.comprimento} cm`].join('\n');
+    `Medidas: altura ${med.altura} cm, cintura ${med.cintura} cm, quadril ${med.quadril} cm, comprimento ${med.comprimento} cm`,
+    ...(medCamera && ajustou(med) ? [`(A câmera mediu cintura ${med.camera.cintura}, quadril ${med.camera.quadril}, comprimento ${med.camera.comprimento}; a cliente corrigiu.)`] : [])].join('\n');
   const pedidos = ls.get('pedidos', []); pedidos.push({ data: new Date().toISOString(), itens: sacola, total }); ls.set('pedidos', pedidos);
   window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
   sacola = []; salvar();
