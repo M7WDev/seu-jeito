@@ -9,16 +9,18 @@ const PRODUTOS = [
   { id: 'reta', cor: '#4a2f22', glb: 'img/calca-reta.gltf',        nome: 'Calça Reta',        sub: 'Versátil sempre',       preco: 189.9, img: 'img/reta.jpg' },
   { id: 'jeans', cor: '#8fa9c4', glb: 'img/calca-jeans.gltf',       nome: 'Calça Jeans',       sub: 'O essencial do dia a dia', preco: 179.9, img: 'img/jeans.jpg' },
 ];
-const TAMANHOS = ['PP', 'P', 'M', 'G'];
+// tamanhos da marca, do menor ao maior (equivalem a PP, P, M e G)
+const TAMANHOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
 // cintura em cm -> tamanho. ponytail: tabela única p/ todos os modelos; por modelo quando a modelagem divergir
-const TABELA_CINTURA = { PP: 0, P: 70, M: 78, G: 86 }; // cintura mínima (cm) de cada tamanho
+const TABELA_CINTURA = { Safira: 0, Esmeralda: 70, Rubi: 78, Turmalina: 86 }; // cintura mínima (cm) de cada tamanho
 
 const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const ls = {
   get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-let sacola = ls.get('sacola', []);
+const NOME_ANTIGO = { PP: 'Safira', P: 'Esmeralda', M: 'Rubi', G: 'Turmalina' }; // sacolas salvas antes da troca de nomes
+let sacola = ls.get('sacola', []).map(i => ({ ...i, tam: NOME_ANTIGO[i.tam] || i.tam }));
 
 function sugerirTamanho(cintura) {
   let t = TAMANHOS[0];
@@ -83,7 +85,39 @@ function abrirCheckout() {
     `${med.altura} cm · cintura ${med.cintura} · quadril ${med.quadril} · comp. ${med.comprimento}`;
   const cli = ls.get('cliente');
   if (cli) for (const k in cli) dlg.querySelector(`[name=${k}]`) && (dlg.querySelector(`[name=${k}]`).value = cli[k]);
+  if (!med) resetMedicao(dlg.querySelector('form'));
   dlg.showModal();
+}
+
+/* ---------- medidas pela câmera: a cliente só digita a altura ---------- */
+function resetMedicao(f) {
+  ['cintura', 'quadril', 'comprimento'].forEach(k => { f[k].value = ''; f[k].required = false; });
+  f.querySelector('.manual').hidden = true;
+  const msg = f.querySelector('.medidas-camera'); msg.textContent = ''; msg.classList.remove('erro');
+  f.querySelector('.medir-btn').textContent = 'Medir com a câmera';
+  f.querySelector('.sugestao').textContent = '';
+}
+async function medirPelaCamera(f) {
+  const msg = f.querySelector('.medidas-camera');
+  if (!f.altura.reportValidity()) return;
+  msg.classList.remove('erro'); msg.textContent = '';
+  try {
+    if (!window.medirCorpo) throw new Error('erro');
+    const r = await window.medirCorpo(+f.altura.value);
+    f.cintura.value = r.cintura; f.quadril.value = r.quadril; f.comprimento.value = r.comprimento;
+    msg.textContent = `Medimos: cintura ${r.cintura} cm, quadril ${r.quadril} cm, perna ${r.comprimento} cm.`;
+    f.querySelector('.medir-btn').textContent = 'Medir de novo';
+    calcSugestao(f);
+  } catch (e) {
+    if (e.message === 'cancelada') return;
+    // sem câmera: libera os campos pra digitar, senão a cliente fica presa no checkout
+    f.querySelector('.manual').hidden = false;
+    ['cintura', 'quadril', 'comprimento'].forEach(k => (f[k].required = true));
+    msg.classList.add('erro');
+    msg.textContent = e.message === 'camera'
+      ? 'Não conseguimos abrir a câmera. Libere o acesso e tente de novo, ou digite as medidas abaixo.'
+      : 'A medição não funciona neste navegador. Digite as medidas abaixo.';
+  }
 }
 function calcSugestao(form) {
   const c = +form.cintura.value;
@@ -93,6 +127,12 @@ function finalizar(e) {
   e.preventDefault();
   const f = e.target, d = Object.fromEntries(new FormData(f));
   if (!f.querySelector('.passo-medidas').hidden) {
+    if (!d.cintura) { // ainda não mediu
+      const msg = f.querySelector('.medidas-camera');
+      msg.classList.add('erro'); msg.textContent = 'Meça com a câmera antes de enviar o pedido.';
+      f.querySelector('.medir-btn').focus();
+      return;
+    }
     ls.set('medidas', { altura: +d.altura, cintura: +d.cintura, quadril: +d.quadril, comprimento: +d.comprimento });
   }
   const med = ls.get('medidas');
@@ -119,5 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const f = document.querySelector('#checkout form');
   f.onsubmit = finalizar;
   f.cintura.oninput = () => calcSugestao(f);
+  f.querySelector('.medir-btn').onclick = () => medirPelaCamera(f);
   document.querySelector('.editar-medidas').onclick = () => { localStorage.removeItem('medidas'); abrirCheckout(); };
 });

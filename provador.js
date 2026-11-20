@@ -125,6 +125,14 @@ function junta(nome, [x, y]) {
 }
 
 /* ---------- ciclo ---------- */
+let modo = 'provar'; // um Pose só (o WASM do MediaPipe não gosta de duas instâncias): o modo decide quem recebe o frame
+function garantirPose() {
+  if (pose) return;
+  pose = new Pose({ locateFile: f => `${CDN}/${f}` });
+  pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: true, smoothSegmentation: true,
+    minDetectionConfidence: .6, minTrackingConfidence: .6 });
+  pose.onResults(r => (modo === 'medir' ? medir(r) : desenhar(r)));
+}
 window.abrirProvador = async function (p) {
   produto = p; suave = {};
   try { medidas = JSON.parse(localStorage.getItem('medidas')); } catch { medidas = null; }
@@ -140,12 +148,7 @@ window.abrirProvador = async function (p) {
     ]);
     video.srcObject = stream; video.hidden = false; await video.play();
     montarCena(malha, canvas, video.videoWidth, video.videoHeight);
-    if (!pose) {
-      pose = new Pose({ locateFile: f => `${CDN}/${f}` });
-      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: true, smoothSegmentation: true,
-        minDetectionConfidence: .6, minTrackingConfidence: .6 });
-      pose.onResults(desenhar);
-    }
+    garantirPose(); modo = 'provar';
     status.textContent = 'Afaste-se até o corpo inteiro aparecer.';
     rodando = true; loop();
   } catch (e) {
@@ -266,6 +269,167 @@ window.fecharProvador = function () {
   document.getElementById('provador').close();
 };
 
+/* ---------- medição pela câmera: altura informada → cintura, quadril e comprimento ----------
+   Altura em cm ÷ altura da silhueta em px = cm por px. Duas posições: de frente dá a largura da cintura e do quadril,
+   de lado dá a profundidade nas mesmas alturas; a volta é a elipse com esses dois eixos.
+   ponytail: elipse + máscara do MediaPipe (erro típico de 2 a 4 cm). AJUSTE calibra contra fita métrica; upgrade = modelo
+   de corpo (SMPL) ou mais vistas. */
+const MED = { amostras: 12, AJUSTE: { cintura: 1, quadril: 1, comprimento: 1 } };
+let med, vMed, ctxMed, ctxMask;
+
+// máscara de segmentação → grade 0/1 pequena (240 px de largura basta pra medir e é rápida)
+function lerMascara(mask, W, H) {
+  const w = 240, h = Math.round(H * w / W);
+  if (!ctxMask) ctxMask = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  ctxMask.canvas.width = w; ctxMask.canvas.height = h;
+  ctxMask.drawImage(mask, 0, 0, w, h);
+  const d = ctxMask.getImageData(0, 0, w, h).data, p = new Uint8Array(w * h);
+  let canal = 0; // vermelho, a menos que o alfa varie (aí a silhueta está no alfa)
+  for (let i = 3; i < d.length; i += 4) if (d[i] < 255) { canal = 3; break; }
+  for (let i = 0; i < p.length; i++) p[i] = d[i * 4 + canal] > 127;
+  return { p, w, h };
+}
+const cheio = (m, x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && m.p[y * m.w + x];
+// largura do trecho contínuo da silhueta que passa por cx na linha y (braço afastado fica de fora; vão entre as pernas = 0)
+function largura(m, y, cx) {
+  y = Math.round(y); cx = Math.round(cx);
+  if (!cheio(m, cx, y)) return 0;
+  let a = cx, b = cx;
+  while (cheio(m, a - 1, y)) a--;
+  while (cheio(m, b + 1, y)) b++;
+  return b - a + 1;
+}
+// topo da cabeça: primeira linha com silhueta numa faixa em volta do centro do corpo
+function topo(m, cx, meia) {
+  for (let y = 0; y < m.h; y++) for (let x = Math.max(0, Math.round(cx - meia)); x <= Math.min(m.w - 1, Math.round(cx + meia)); x++) if (m.p[y * m.w + x]) return y;
+  return -1;
+}
+// chão: desce do calcanhar enquanto houver silhueta (a sola fica abaixo do ponto do calcanhar)
+function chao(m, L) {
+  let base = 0;
+  for (const i of [29, 30, 31, 32]) {
+    let y = Math.round(L(i).y); const x = Math.round(L(i).x);
+    while (cheio(m, x, y + 1)) y++;
+    base = Math.max(base, y);
+  }
+  return base;
+}
+const mediana = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+// perímetro da elipse (Ramanujan) com largura e profundidade em cm
+const elipse = (l, p) => { const a = l / 2, b = p / 2; return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b))); };
+
+function amostraFrente(m, L, lm) {
+  const precisa = [0, 11, 12, 23, 24, 27, 28, 29, 30];
+  if (precisa.some(i => lm[i].visibility < .6)) return 'Afaste-se até o corpo inteiro aparecer, da cabeça aos pés.';
+  if ([29, 30, 31, 32].some(i => lm[i].y > .985) || lm[0].y < .05) return 'Afaste-se um pouco: a cabeça e os pés precisam caber com folga.';
+  const cx = (L(23).x + L(24).x) / 2, ombroY = (L(11).y + L(12).y) / 2, quadY = (L(23).y + L(24).y) / 2, tronco = quadY - ombroY;
+  const top = topo(m, cx, m.w * .08), base = chao(m, L), hp = base - top;
+  if (top < 0 || hp < m.h * .45) return 'Chegue um pouco mais perto: o corpo está pequeno no quadro.';
+  if (Math.abs(L(11).x - L(12).x) / hp < .12) return 'Fique de frente para a câmera.';
+  let cint = { w: 1e9, y: 0 }, quad = { w: 0, y: 0 };
+  for (let y = ombroY + tronco * .45; y <= quadY - tronco * .05; y++) { const w = largura(m, y, cx); if (w && w < cint.w) cint = { w, y }; }
+  for (let y = quadY - tronco * .05; y <= quadY + tronco * .35; y++) { const w = largura(m, y, cx); if (w > quad.w) quad = { w, y }; }
+  if (!quad.w || cint.w === 1e9) return 'Use roupa justa e fique com o fundo livre atrás de você.';
+  // braço colado no quadril engorda a largura: o pulso não pode cair dentro do trecho medido
+  const meio = quad.w / 2;
+  if ([15, 16].some(i => Math.abs(L(i).x - cx) < meio + 2 && Math.abs(L(i).y - quad.y) < tronco * .4)) return 'Afaste os braços do corpo.';
+  const cm = med.altura / hp;
+  return { cm, cint: cint.w * cm, quad: quad.w * cm, cintRel: (cint.y - top) / hp, quadRel: (quad.y - top) / hp, perna: (base - cint.y) * cm,
+    linhas: [cint.y / m.h, quad.y / m.h] };
+}
+
+function amostraLado(m, L, lm) {
+  const ok = i => lm[i].visibility > .5;
+  if (!(ok(23) || ok(24)) || !([27, 28, 29, 30].some(ok))) return 'Afaste-se até o corpo inteiro aparecer, da cabeça aos pés.';
+  const quadris = [23, 24].filter(ok), cx = quadris.reduce((s, i) => s + L(i).x, 0) / quadris.length;
+  const top = topo(m, cx, m.w * .1), base = chao(m, L), hp = base - top;
+  if (top < 0 || hp < m.h * .45) return 'Chegue um pouco mais perto: o corpo está pequeno no quadro.';
+  if (Math.abs(L(11).x - L(12).x) / hp > .07) return 'Vire de lado para a câmera, com os braços cruzados no peito.';
+  const f = med.frente, cm = med.altura / hp, faixa = (rel, ext) => {
+    const ws = []; for (let k = -2; k <= 2; k++) ws.push(largura(m, top + (rel + k * .006) * hp, cx));
+    return ext === 'max' ? Math.max(...ws) : mediana(ws.filter(Boolean)) || 0;
+  };
+  const pc = faixa(f.cintRel, 'med'), pq = faixa(f.quadRel, 'max');
+  if (!pc || !pq) return 'Use roupa justa e fique com o fundo livre atrás de você.';
+  return { cint: pc * cm, quad: pq * cm };
+}
+
+function medir(r) {
+  if (!vMed) return;
+  const W = vMed.videoWidth, H = vMed.videoHeight, lm = r.poseLandmarks, c = ctxMed;
+  c.canvas.width = W; c.canvas.height = H; c.drawImage(r.image, 0, 0, W, H);
+  if (!lm || !r.segmentationMask) return aviso('Afaste-se até o corpo inteiro aparecer, da cabeça aos pés.');
+  const m = lerMascara(r.segmentationMask, W, H), L = i => ({ x: lm[i].x * m.w, y: lm[i].y * m.h });
+  const a = med.passo === 'frente' ? amostraFrente(m, L, lm) : amostraLado(m, L, lm);
+  if (typeof a === 'string') return aviso(a);
+  med.lista.push(a);
+  aviso(med.passo === 'frente' ? 'Fique parada, medindo de frente…' : 'Fique parada, medindo de lado…');
+  // linhas da cintura e do quadril, pra cliente ver onde está sendo medido
+  if (a.linhas) {
+    c.strokeStyle = '#f7f3ee'; c.lineWidth = Math.max(2, W / 240); c.setLineDash([10, 8]);
+    for (const f of a.linhas) { c.beginPath(); c.moveTo(0, f * H); c.lineTo(W, f * H); c.stroke(); }
+  }
+  med.barra.style.width = `${Math.round(100 * med.lista.length / MED.amostras)}%`;
+  if (med.lista.length < MED.amostras) return;
+  if (med.passo === 'frente') {
+    const l = med.lista, pega = k => mediana(l.map(s => s[k]));
+    med.frente = { cint: pega('cint'), quad: pega('quad'), cintRel: pega('cintRel'), quadRel: pega('quadRel'), perna: pega('perna') };
+    med.passo = 'lado'; med.lista = []; med.barra.style.width = '0%';
+    med.passos[0].classList.add('feito'); med.passos[1].classList.add('agora');
+    return aviso('Agora vire de lado, com os braços cruzados no peito.');
+  }
+  const f = med.frente, pc = mediana(med.lista.map(s => s.cint)), pq = mediana(med.lista.map(s => s.quad));
+  const res = {
+    altura: med.altura,
+    cintura: Math.round(elipse(f.cint, pc) * MED.AJUSTE.cintura),
+    quadril: Math.round(elipse(f.quad, pq) * MED.AJUSTE.quadril),
+    comprimento: Math.round(f.perna * MED.AJUSTE.comprimento),
+  };
+  // fora do que a tabela atende = leitura ruim (roupa larga, fundo confuso): mede de novo em vez de salvar lixo
+  if (res.cintura < 55 || res.cintura > 120 || res.quadril < 70 || res.quadril > 140 || res.quadril < res.cintura || res.comprimento < 60 || res.comprimento > 110) {
+    med.passo = 'frente'; med.lista = []; med.frente = null; med.barra.style.width = '0%';
+    med.passos.forEach(p => p.classList.remove('feito', 'agora')); med.passos[0].classList.add('agora');
+    return aviso('A leitura não ficou boa. Com roupa justa e fundo liso, fique de frente de novo.');
+  }
+  pararMedicao(); med.ok(res);
+}
+function aviso(t) { if (med.status.textContent !== t) med.status.textContent = t; }
+
+async function loopMedir() { if (modo !== 'medir' || !rodando) return; await pose.send({ image: vMed }); requestAnimationFrame(loopMedir); }
+
+function pararMedicao() {
+  rodando = false; modo = 'provar';
+  vMed?.srcObject?.getTracks().forEach(t => t.stop());
+  document.getElementById('medicao').close();
+}
+
+// abre a medição; resolve com { altura, cintura, quadril, comprimento } ou rejeita ('cancelada', 'camera', 'erro')
+window.medirCorpo = function (altura) {
+  return new Promise(async (ok, falha) => {
+    const dlg = document.getElementById('medicao');
+    vMed = dlg.querySelector('video'); ctxMed = dlg.querySelector('canvas').getContext('2d');
+    med = { altura, passo: 'frente', lista: [], frente: null, ok, status: dlg.querySelector('.status'), barra: dlg.querySelector('.progresso i'),
+      passos: [...dlg.querySelectorAll('.passos li')] };
+    med.passos.forEach(p => p.classList.remove('feito', 'agora')); med.passos[0].classList.add('agora'); med.barra.style.width = '0%';
+    dlg.querySelector('.medicao-fechar').onclick = () => { pararMedicao(); falha(new Error('cancelada')); };
+    dlg.oncancel = () => { pararMedicao(); falha(new Error('cancelada')); };
+    aviso('Abrindo a câmera…'); dlg.showModal();
+    try {
+      await carregarLibs();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } } });
+      vMed.srcObject = stream; await vMed.play();
+      dlg.querySelector('.cam').style.aspectRatio = `${vMed.videoWidth}/${vMed.videoHeight}`;
+      garantirPose(); modo = 'medir'; rodando = true;
+      aviso('Apoie o celular e afaste-se até o corpo inteiro aparecer.');
+      loopMedir();
+    } catch (e) {
+      console.error(e); pararMedicao();
+      falha(new Error(e.name === 'NotAllowedError' || e.name === 'NotFoundError' ? 'camera' : 'erro'));
+    }
+  });
+};
+
 // exposto pra teste sem câmera
+window._medicao = { lerMascara, largura, topo, elipse, amostraFrente, amostraLado, set: v => { med = v; } };
 window._provador = { carregarLibs, carregarMalha, montarCena, desenhar, casarLuz,
   setVideo: v => { video = v; }, get: () => ({ THREE, scene, cam, skinned, ossos, bind, ceu, luz, ctx }) };

@@ -145,7 +145,19 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 .cam canvas { z-index: 1; }
 .cam .status { position: absolute; inset: auto 16px 16px; margin: 0; text-align: center; color: #fff; background: rgb(0 0 0 / .55); padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); z-index: 2; }
 .cam .status:empty { display: none; }
-#provador > p { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
+#provador > p, #medicao > p { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
+#medicao { width: min(480px, calc(100% - 32px)); }
+#medicao video { opacity: 0; } /* o canvas mostra o frame com as linhas de medida */
+.progresso { height: 4px; background: var(--line); }
+.progresso i { display: block; height: 100%; width: 0; background: var(--action); transition: width 200ms ease; }
+.passos { margin: var(--s-4) var(--s-6) 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); color: var(--muted); }
+.passos li.agora { color: var(--ink); font-weight: 500; }
+.passos li.feito { text-decoration: line-through; }
+.medir { display: flex; align-items: end; }
+.medir .btn { width: 100%; }
+.medidas-camera { margin: var(--s-3) 0 0; }
+.medidas-camera:empty { display: none; }
+.medidas-camera.erro { color: #a3341f; }
 @media (max-width: 600px) { .campos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { dialog, dialog::backdrop { transition: none; } .badge.bump, .campos input:user-invalid { animation: none; } }
 </style>
@@ -203,7 +215,7 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   <section class="section" id="modelos" aria-labelledby="modelos-h">
     <div class="wrap">
       <div class="section-head">
-        <h2 id="modelos-h">Calças em 4 modelos, do PP ao G. <span class="muted">Escolha o tamanho pela sua cintura.</span></h2>
+        <h2 id="modelos-h">Calças em 4 modelos e 4 tamanhos. <span class="muted">Do Safira ao Turmalina, pela sua cintura.</span></h2>
       </div>
       <div class="grid">
         <article class="tile span-3" data-id="alfaiataria">
@@ -283,14 +295,14 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
     <div class="wrap">
       <div class="section-head">
         <h2 id="tamanhos-h">Tamanhos de calça pela cintura</h2>
-        <p>Meça a cintura com uma fita e escolha na tabela. Na primeira compra você informa suas medidas e o site sugere o tamanho.</p>
+        <p>Cada tamanho tem nome de pedra. Na primeira compra você informa a altura, a câmera mede o resto e o site sugere o tamanho.</p>
       </div>
       <div class="grid grid--top">
         <ul class="rows rows--spec span-4">
-          <li><span class="rows__name">PP</span><span class="rows__value">até 69 cm</span></li>
-          <li><span class="rows__name">P</span><span class="rows__value">de 70 a 77 cm</span></li>
-          <li><span class="rows__name">M</span><span class="rows__value">de 78 a 85 cm</span></li>
-          <li><span class="rows__name">G</span><span class="rows__value">a partir de 86 cm</span></li>
+          <li><span class="rows__name">Safira</span><span class="rows__value">até 69 cm</span></li>
+          <li><span class="rows__name">Esmeralda</span><span class="rows__value">de 70 a 77 cm</span></li>
+          <li><span class="rows__name">Rubi</span><span class="rows__value">de 78 a 85 cm</span></li>
+          <li><span class="rows__name">Turmalina</span><span class="rows__value">a partir de 86 cm</span></li>
         </ul>
         <figure class="pic pic--tall span-5 start-5"><img src="img/tecidos.jpg?v=2" srcset="img/tecidos-640.jpg 640w, img/tecidos.jpg?v=2 1600w" sizes="(max-width: 639px) 100vw, 50vw" alt="Quatro calças dobradas, terracota, bege, marrom e preta, com botões no cós" loading="lazy" data-source="client" data-subject="as cores das calças" width="1446" height="1087"></figure>
         <figure class="pic span-3 start-10"><img src="img/offwhite.jpg" srcset="img/offwhite-640.jpg 640w, img/offwhite.jpg 1600w" sizes="(max-width: 639px) 100vw, 50vw" alt="Cós de uma calça off-white de perto, com botão e passante" loading="lazy" data-source="client" data-subject="cós off-white" width="1036" height="1028"></figure>
@@ -307,7 +319,7 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
         </div>
         <div class="faq">
         <div class="faq__item"><h3>Serve em quem tem mais de 1,55m?</h3><p>As calças são cortadas para até 1,55m. Acima disso a barra tende a ficar curta, ainda mais com salto.</p></div>
-        <div class="faq__item"><h3>Como sei o tamanho da minha calça?</h3><p>Pela cintura, na tabela de tamanhos. Na primeira compra você informa altura, cintura, quadril e perna, e o site sugere o tamanho.</p></div>
+        <div class="faq__item"><h3>Como sei o tamanho da minha calça?</h3><p>Pela cintura, na tabela de tamanhos. Na primeira compra você informa só a altura; a câmera do celular mede cintura, quadril e perna, e o site sugere o tamanho.</p></div>
         <div class="faq__item"><h3>Como pago as calças?</h3><p>Você monta a sacola aqui e envia o pedido pelo WhatsApp. Lá combinamos o pagamento e o frete, com entrega em todo o Brasil.</p></div>
         <div class="faq__item"><h3>O provador mostra a calça no meu corpo?</h3><p>Sim. Ele abre a câmera e desenha a calça sobre o seu corpo. É uma prévia: o caimento real segue as suas medidas.</p></div>
         </div>
@@ -360,12 +372,17 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   <form method="dialog">
     <div class="dlg-head"><h3 id="checkout-h">Finalizar compra</h3><button type="button" onclick="checkout.close()" aria-label="Fechar">×</button></div>
     <fieldset class="passo-medidas">
-      <legend>Suas medidas <small>Só na primeira compra; guardamos para a próxima.</small></legend>
+      <legend>Suas medidas <small>Você informa a altura e a câmera mede cintura, quadril e perna. Só na primeira compra; guardamos para a próxima.</small></legend>
       <div class="campos">
         <label>Altura (cm)<input name="altura" type="number" min="130" max="200" required inputmode="numeric"></label>
-        <label>Cintura (cm)<input name="cintura" type="number" min="55" max="120" required inputmode="numeric"></label>
-        <label>Quadril (cm)<input name="quadril" type="number" min="70" max="140" required inputmode="numeric"></label>
-        <label>Comprimento da perna (cm)<input name="comprimento" type="number" min="60" max="110" required inputmode="numeric"><small>Da cintura até o chão, descalça.</small></label>
+        <div class="medir"><button type="button" class="btn btn--secondary medir-btn">Medir com a câmera</button></div>
+      </div>
+      <p class="medidas-camera" role="status"></p>
+      <!-- preenchidos pela câmera; viram campos de digitar só quando a câmera não abre -->
+      <div class="campos manual" hidden>
+        <label>Cintura (cm)<input name="cintura" type="number" min="55" max="120" inputmode="numeric"></label>
+        <label>Quadril (cm)<input name="quadril" type="number" min="70" max="140" inputmode="numeric"></label>
+        <label class="full">Comprimento da perna (cm)<input name="comprimento" type="number" min="60" max="110" inputmode="numeric"><small>Da cintura até o chão, descalça.</small></label>
       </div>
       <p class="sugestao"></p>
     </fieldset>
@@ -382,6 +399,17 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
     </fieldset>
     <button class="btn btn--primary" type="submit">Enviar pedido pelo WhatsApp</button>
   </form>
+</dialog>
+
+<dialog id="medicao" aria-labelledby="medicao-h">
+  <div class="dlg-head"><h3 id="medicao-h">Medir com a câmera</h3><button type="button" class="medicao-fechar" aria-label="Fechar medição">×</button></div>
+  <div class="cam"><video playsinline muted></video><canvas></canvas><p class="status"></p></div>
+  <div class="progresso" aria-hidden="true"><i></i></div>
+  <ol class="passos">
+    <li>De frente, corpo inteiro no quadro, braços afastados do corpo.</li>
+    <li>De lado, com os braços cruzados no peito.</li>
+  </ol>
+  <p>Use roupa justa, fique descalça e apoie o celular na altura da cintura, a uns 2,5 m. As imagens ficam só no seu aparelho.</p>
 </dialog>
 
 <dialog id="provador" aria-labelledby="provador-h">
