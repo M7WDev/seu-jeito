@@ -1,0 +1,193 @@
+<!doctype html>
+<!-- Calibração da medição pela câmera: uso interno, sem link no site. Cada pessoa é medida com fita e com a câmera;
+     os pares ficam no localStorage deste aparelho ('calibracao') e saem em CSV. O fator sugerido vai em MED.AJUSTE
+     (provador.js). Compara o valor BRUTO da câmera (sem AJUSTE), então recalibrar depois de um ajuste continua certo. -->
+<html lang="pt-BR" data-radius="soft" data-buttons="block">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Seu Jeito: calibrar a medição</title>
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<style>
+:root {
+  --p-bg: #f7f3ee; --p-surface: #efe9e1; --p-ink: #2c241d; --p-muted: #6f6257;
+  --p-accent: #5b3a26; --p-accent-ink: #f7f3ee; --p-action: #5b3a26; --p-action-ink: #f7f3ee;
+  --p-inv-bg: #2c241d; --p-inv-surface: #383029; --p-inv-ink: #f7f3ee; --p-inv-muted: #a39d97;
+  --p-inv-accent: #f7f3ee; --p-inv-accent-ink: #2c241d; --p-inv-action: #f7f3ee; --p-inv-action-ink: #2c241d;
+  --font-display: "Albert Sans", system-ui, sans-serif; --font-text: "Albert Sans", system-ui, sans-serif;
+  --display-weight: 400; --display-tracking: -0.025em;
+}
+body { background: var(--bg); }
+.pag { width: min(100% - 32px, 720px); margin: 0 auto; padding: var(--s-7) 0 var(--s-9); display: grid; gap: var(--s-7); }
+.pag h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; }
+.pag h2 { font-size: 24px; line-height: 1.2; margin-bottom: var(--s-4); }
+.pag p, .pag li { max-width: 62ch; }
+.muted { color: var(--muted); }
+.caixa { background: var(--surface); border-radius: var(--r-md); padding: var(--s-5); display: grid; gap: var(--s-4); }
+.campos h3 { grid-column: 1 / -1; font: 500 16px var(--font-text); margin-top: var(--s-2); }
+.acoes { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+.acoes .btn { flex: 1 1 200px; }
+.resultado:empty { display: none; }
+.resultado.erro { color: #a3341f; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
+th, td { text-align: right; padding: var(--s-2) var(--s-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; white-space: normal; }
+th { font-weight: 500; color: var(--muted); }
+.pag > * { min-width: 0; } /* senão a tabela larga estica a coluna do grid e a página rola de lado */
+.tabela, #fator { overflow-x: auto; }
+.del { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; min-width: 44px; min-height: 44px; }
+.bom { color: #2f6b3a; } .ruim { color: #a3341f; }
+#fator th, #fator td { white-space: normal; }
+pre { white-space: pre-wrap; word-break: break-word; background: var(--ink); color: var(--bg); padding: var(--s-4); border-radius: var(--r-sm); overflow-x: auto; font-size: 14px; }
+</style>
+<link rel="stylesheet" href="medicao.css?v=1">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<main class="pag">
+  <header>
+    <h1>Calibrar a medição pela câmera</h1>
+    <p class="muted">Meça a pessoa com fita métrica, depois com a câmera. Cada par fica salvo neste celular. Com 5 pares já sai um fator; com 20 ele fica estável.</p>
+  </header>
+
+  <section class="caixa" aria-labelledby="nova-h">
+    <h2 id="nova-h">Nova pessoa</h2>
+    <ol class="muted">
+      <li>Cintura: na parte mais fina, fita sem apertar.</li>
+      <li>Quadril: na parte mais larga do bumbum, pés juntos.</li>
+      <li>Perna: da cintura até o chão, descalça.</li>
+    </ol>
+    <form id="nova" class="campos" novalidate>
+      <label class="full">Quem (só para você identificar)<input name="quem" autocomplete="off" placeholder="Pessoa 1"></label>
+      <label>Altura (cm)<input name="altura" type="number" min="130" max="200" required inputmode="decimal"></label>
+      <h3>Medidas com fita (cm)</h3>
+      <label>Cintura<input name="cintura" type="number" min="50" max="130" step="0.5" required inputmode="decimal"></label>
+      <label>Quadril<input name="quadril" type="number" min="65" max="150" step="0.5" required inputmode="decimal"></label>
+      <label class="full">Perna (cintura ao chão)<input name="comprimento" type="number" min="55" max="115" step="0.5" required inputmode="decimal"></label>
+    </form>
+    <div class="acoes"><button type="button" class="btn btn--primary" id="medir">Medir com a câmera e salvar</button></div>
+    <p class="resultado" id="resultado" role="status"></p>
+  </section>
+
+  <section aria-labelledby="pares-h">
+    <h2 id="pares-h">Pares salvos</h2>
+    <div class="tabela" id="tabela"></div>
+    <div class="acoes" style="margin-top: var(--s-4)">
+      <button type="button" class="btn btn--secondary" id="csv">Baixar CSV</button>
+      <button type="button" class="btn btn--secondary" id="compartilhar">Compartilhar resultado</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="fator-h">
+    <h2 id="fator-h">Fator sugerido</h2>
+    <div id="fator"></div>
+  </section>
+</main>
+
+<dialog id="medicao" aria-labelledby="medicao-h">
+  <div class="dlg-head"><h3 id="medicao-h">Medir com a câmera</h3><button type="button" class="voz-btn" aria-pressed="true">Voz ligada</button><button type="button" class="medicao-fechar" aria-label="Fechar medição">×</button></div>
+  <div class="etapa-tutorial">
+    <video class="tutorial-video" src="img/tutorial-medicao.mp4?v=2" poster="img/tutorial-medicao.jpg" playsinline muted controls preload="metadata"></video>
+    <div class="tutorial-acoes">
+      <button type="button" class="btn btn--primary comecar">Abrir a câmera e medir</button>
+      <p>Durante a medição a voz diz o que fazer. Nenhuma imagem é gravada nem enviada.</p>
+    </div>
+  </div>
+  <div class="etapa-camera" hidden>
+    <div class="cam"><video playsinline muted></video><canvas></canvas><p class="status" aria-live="polite"></p></div>
+    <div class="progresso" aria-hidden="true"><i></i></div>
+    <ol class="passos">
+      <li>De frente, corpo inteiro no quadro, braços afastados do corpo.</li>
+      <li>De lado, com os braços cruzados no peito.</li>
+    </ol>
+    <p class="dica">Roupa justa, descalça, celular em pé na altura da cintura, a uns 2,5 m.</p>
+  </div>
+</dialog>
+
+<script type="module" src="provador.js?v=8"></script>
+<script>
+const K = ['cintura', 'quadril', 'comprimento'], NOME = { cintura: 'Cintura', quadril: 'Quadril', comprimento: 'Perna' };
+const ler = () => { try { return JSON.parse(localStorage.getItem('calibracao')) || []; } catch { return []; } };
+const gravar = l => localStorage.setItem('calibracao', JSON.stringify(l));
+const f1 = n => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+
+// fator por mínimos quadrados pela origem: k = Σ fita·câmera / Σ câmera². Multiplica a câmera e chega o mais perto da fita.
+function estatistica(l) {
+  const r = {};
+  for (const k of K) {
+    const c = l.map(p => p.cam[k]), t = l.map(p => p.fita[k]), n = l.length;
+    const fator = c.reduce((s, x, i) => s + x * t[i], 0) / (c.reduce((s, x) => s + x * x, 0) || 1);
+    const erroAntes = c.reduce((s, x, i) => s + Math.abs(x - t[i]), 0) / n;
+    const erroDepois = c.reduce((s, x, i) => s + Math.abs(x * fator - t[i]), 0) / n;
+    const vies = c.reduce((s, x, i) => s + (x - t[i]), 0) / n;
+    r[k] = { fator, erroAntes, erroDepois, vies };
+  }
+  return r;
+}
+
+function desenhar() {
+  const l = ler();
+  document.getElementById('tabela').innerHTML = l.length ? `<table>
+    <thead><tr><th>Quem</th>${K.map(k => `<th>${NOME[k]} fita</th><th>câmera</th>`).join('')}<th></th></tr></thead>
+    <tbody>${l.map((p, i) => `<tr><td>${p.quem.replace(/</g, '&lt;')}<br><small class="muted">${p.altura} cm</small></td>${K.map(k => {
+      const d = p.cam[k] - p.fita[k];
+      return `<td>${f1(p.fita[k])}</td><td class="${Math.abs(d) <= 2 ? 'bom' : 'ruim'}">${f1(p.cam[k])} (${d > 0 ? '+' : ''}${f1(d)})</td>`;
+    }).join('')}<td><button class="del" data-i="${i}" aria-label="Apagar ${p.quem.replace(/"/g, '')}">×</button></td></tr>`).join('')}</tbody></table>`
+    : '<p class="muted">Nenhum par ainda.</p>';
+  document.querySelectorAll('.del').forEach(b => b.onclick = () => {
+    if (!confirm('Apagar este par?')) return;
+    const l = ler(); l.splice(+b.dataset.i, 1); gravar(l); desenhar();
+  });
+  const alvo = document.getElementById('fator');
+  if (l.length < 5) { alvo.innerHTML = `<p class="muted">Faltam ${5 - l.length} pares para calcular o fator.</p>`; return; }
+  const e = estatistica(l);
+  alvo.innerHTML = `<table><thead><tr><th>Medida</th><th>A câmera erra em média</th><th>Tende a</th><th>Com o fator</th><th>Fator</th></tr></thead><tbody>
+    ${K.map(k => `<tr><td>${NOME[k]}</td><td>${f1(e[k].erroAntes)} cm</td><td>${e[k].vies > 0 ? 'sobrar' : 'faltar'} ${f1(Math.abs(e[k].vies))} cm</td><td>${f1(e[k].erroDepois)} cm</td><td>${e[k].fator.toFixed(3)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="muted" style="margin-top: var(--s-4)">Com ${l.length} pares. Linha para o provador.js:</p>
+    <pre>AJUSTE: { cintura: ${e.cintura.fator.toFixed(3)}, quadril: ${e.quadril.fator.toFixed(3)}, comprimento: ${e.comprimento.fator.toFixed(3)} }</pre>`;
+}
+
+document.getElementById('medir').onclick = async () => {
+  const f = document.getElementById('nova'), out = document.getElementById('resultado');
+  out.classList.remove('erro'); out.textContent = '';
+  for (const n of ['altura', ...K]) if (!f[n].reportValidity()) return;
+  try {
+    if (!window.medirCorpo) throw new Error('erro');
+    const r = await window.medirCorpo(+f.altura.value);
+    const par = { quem: f.quem.value.trim() || `Pessoa ${ler().length + 1}`, data: new Date().toISOString(), altura: +f.altura.value,
+      fita: Object.fromEntries(K.map(k => [k, +f[k].value])), cam: r.bruto };
+    const l = ler(); l.push(par); gravar(l);
+    out.textContent = `Salvo. Câmera: cintura ${f1(r.bruto.cintura)}, quadril ${f1(r.bruto.quadril)}, perna ${f1(r.bruto.comprimento)} cm.`;
+    f.reset(); desenhar();
+  } catch (e) {
+    if (e.message === 'cancelada') return;
+    out.classList.add('erro');
+    out.textContent = e.message === 'camera' ? 'Não conseguimos abrir a câmera. Libere o acesso e tente de novo.' : 'A medição não funciona neste navegador.';
+  }
+};
+
+function csv() {
+  const l = ler(), linhas = [['quem', 'data', 'altura', ...K.flatMap(k => [`${k}_fita`, `${k}_camera`])].join(';'),
+    ...l.map(p => [p.quem, p.data, p.altura, ...K.flatMap(k => [p.fita[k], p.cam[k]])].map(v => String(v).replace(/;/g, ',')).join(';'))];
+  return linhas.join('\n');
+}
+document.getElementById('csv').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv()], { type: 'text/csv;charset=utf-8' }));
+  a.download = `calibracao-seu-jeito-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+document.getElementById('compartilhar').onclick = async () => {
+  const texto = `Calibração Seu Jeito (${ler().length} pares)\n\n${csv()}\n\n${document.querySelector('#fator pre')?.textContent || ''}`;
+  try { if (navigator.share) return await navigator.share({ title: 'Calibração Seu Jeito', text: texto }); } catch { return; }
+  await navigator.clipboard.writeText(texto); alert('Copiado. Cole no WhatsApp ou no e-mail.');
+};
+desenhar();
+</script>
+</body>
+</html>

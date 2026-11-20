@@ -42,6 +42,7 @@
 <link rel="modulepreload" href="assets/moments/moments.js">
 <link rel="modulepreload" href="assets/moments/lib.js">
 <link rel="modulepreload" href="assets/moments/photo-chapters/moment.js">
+<link rel="stylesheet" href="medicao.css?v=1">
 <style>
 /* page CSS: só o que fica dentro de uma foto, da loja ou dos diálogos */
 .nav__logo img { height: 34px; width: auto; }
@@ -95,20 +96,10 @@
 .sacola-btn { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; border: 0; background: none; color: var(--ink); cursor: pointer; }
 .sacola-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 
-dialog { border: 0; padding: 0; background: var(--bg); color: var(--ink); max-height: calc(100% - 32px);
-  opacity: 1; transform: none; filter: none;
-  transition: opacity 260ms cubic-bezier(.22, 1, .36, 1), transform 320ms cubic-bezier(.22, 1, .36, 1), filter 260ms ease, overlay 320ms allow-discrete, display 320ms allow-discrete; }
-@starting-style { dialog[open] { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(6px); } }
-dialog:not([open]) { opacity: 0; transform: scale(.98); transition-duration: 140ms; }
-dialog::backdrop { background: rgb(44 36 29 / .45); transition: background 260ms ease, overlay 320ms allow-discrete, display 320ms allow-discrete; }
-@starting-style { dialog[open]::backdrop { background: rgb(44 36 29 / 0); } }
 dialog.sacola { margin: 0 0 0 auto; height: 100%; max-height: none; width: min(420px, 100%); display: flex; flex-direction: column; }
 dialog.sacola:not([open]) { display: none; }
 @starting-style { dialog.sacola[open] { opacity: 1; transform: translateX(100%); filter: none; } }
 dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
-.dlg-head { display: flex; justify-content: space-between; align-items: center; padding: var(--s-5) var(--s-6); border-bottom: 1px solid var(--line); }
-.dlg-head h3 { font: 500 var(--t-lead)/1.3 var(--font-text); }
-.dlg-head button { width: 44px; height: 44px; margin-right: calc(-1 * var(--s-3)); border: 0; background: none; color: var(--ink); font-size: 28px; line-height: 1; cursor: pointer; }
 .sacola-itens { flex: 1; overflow: auto; padding: var(--s-4) var(--s-6); }
 .sacola-item { display: grid; grid-template-columns: 64px 1fr auto; gap: var(--s-4); align-items: center; padding: var(--s-4) 0; border-bottom: 1px solid var(--line); }
 .sacola-item img { width: 64px; height: 84px; object-fit: cover; object-position: 50% 0; border-radius: var(--r-sm); }
@@ -128,62 +119,17 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 #checkout fieldset { border: 0; padding: 0; margin: var(--s-5) 0 0; }
 #checkout legend { font-weight: 500; margin-bottom: var(--s-4); }
 #checkout legend small { display: block; font-weight: 400; color: var(--muted); font-size: var(--t-small); }
-.campos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
-.campos label { display: grid; gap: var(--s-2); font-size: var(--t-small); color: var(--muted); }
-.campos label.full { grid-column: 1 / -1; }
-.campos input { min-height: 48px; padding: 0 var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; color: var(--ink); font: 16px var(--font-text); }
-.campos input:user-invalid { border-color: #a3341f; animation: shake 360ms cubic-bezier(.36, .07, .19, .97); }
-@keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 .sugestao { margin: var(--s-3) 0 0; color: var(--action); }
 .sugestao:empty { display: none; }
 .medidas-salvas { margin: var(--s-5) 0 0; color: var(--muted); }
 .medidas-salvas button { border: 0; background: none; color: var(--action); text-decoration: underline; font: inherit; cursor: pointer; }
 #checkout form > .btn { width: 100%; margin-top: var(--s-5); }
 #provador { width: min(480px, calc(100% - 32px)); }
-.cam { position: relative; background: #111; aspect-ratio: 3 / 4; }
-.cam video, .cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); }
-.cam canvas { z-index: 1; }
-.cam .status { position: absolute; inset: auto 16px 16px; margin: 0; text-align: center; color: #fff; background: rgb(0 0 0 / .55); padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); z-index: 2; }
-.cam .status:empty { display: none; }
-#provador > p, #medicao .dica { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
-#medicao { width: min(560px, calc(100% - 32px)); }
-#medicao .dlg-head { gap: var(--s-3); }
-#medicao .dlg-head h3 { margin-right: auto; }
-.dlg-head .voz-btn { width: auto; height: auto; margin: 0; font-size: 14px; line-height: 1; white-space: nowrap; }
-.voz-btn { min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: none; color: var(--ink); font: 500 14px var(--font-text); cursor: pointer; }
-.voz-btn[aria-pressed="false"] { color: var(--muted); }
-.tutorial-video { display: block; width: 100%; max-height: 64vh; background: #111; aspect-ratio: 9 / 16; object-fit: contain; }
-.tutorial-acoes { display: grid; gap: var(--s-3); padding: var(--s-5) var(--s-6); }
-.tutorial-acoes .btn { width: 100%; }
-.tutorial-acoes p { color: var(--muted); font-size: var(--t-small); text-align: center; }
-#medicao .cam { max-height: 72vh; }
-/* a cliente lê o aviso a 2,5 m do celular: letra grande */
-#medicao .status { inset: auto 12px 12px; font-size: 20px; line-height: 1.35; padding: var(--s-4); }
-/* celular: tela cheia, o vídeo ocupa tudo que sobra */
-@media (max-width: 640px) {
-  #medicao[open] { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; display: flex; flex-direction: column; border-radius: 0; }
-  #medicao .dlg-head { padding: var(--s-2) var(--s-4); }
-  .etapa-tutorial:not([hidden]), .etapa-camera:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .tutorial-video { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto; }
-  .tutorial-acoes { padding: var(--s-4) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom)); }
-  #medicao .cam { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto !important; }
-  /* vídeo deitado: corta as laterais (a pessoa fica no meio) em vez de ficar uma faixa pequena; em pé, mostra inteiro */
-  #medicao.paisagem canvas { object-fit: cover; }
-  #medicao .passos { margin: var(--s-3) var(--s-4) 0; font-size: 14px; }
-  #medicao .dica { padding: var(--s-2) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); font-size: 13px; }
-}
-#medicao .cam video { opacity: 0; } /* o canvas mostra o frame com as linhas de medida */
-.progresso { height: 4px; background: var(--line); }
-.progresso i { display: block; height: 100%; width: 0; background: var(--action); transition: width 200ms ease; }
-.passos { margin: var(--s-4) var(--s-6) 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); color: var(--muted); }
-.passos li.agora { color: var(--ink); font-weight: 500; }
-.passos li.feito { text-decoration: line-through; }
 .medir { display: flex; align-items: end; }
 .medir .btn { width: 100%; }
 .medidas-camera { margin: var(--s-3) 0 0; }
 .medidas-camera:empty { display: none; }
 .medidas-camera.erro { color: #a3341f; }
-@media (max-width: 600px) { .campos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { dialog, dialog::backdrop { transition: none; } .badge.bump, .campos input:user-invalid { animation: none; } }
 </style>
 </head>
@@ -454,8 +400,8 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   <p>Fique de frente, com o corpo inteiro no quadro. A projeção é uma prévia; o caimento real segue as suas medidas.</p>
 </dialog>
 
-<script src="loja.js?v=7"></script>
-<script type="module" src="provador.js?v=7"></script>
+<script src="loja.js?v=8"></script>
+<script type="module" src="provador.js?v=8"></script>
 <script type="module" src="assets/system.js"></script>
 <script type="module" src="assets/motion/motion.js"></script>
 <script type="module" src="assets/layout/layout.js"></script>

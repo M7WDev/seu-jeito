@@ -379,11 +379,14 @@ function medir(r) {
     return aviso('Pronto, a frente está medida. Agora vire de lado, com os braços cruzados no peito.', true);
   }
   const f = med.frente, pc = mediana(med.lista.map(s => s.cint)), pq = mediana(med.lista.map(s => s.quad));
+  // bruto = antes do AJUSTE: é o que a calibração (calibrar.html) compara com a fita
+  const bruto = { cintura: elipse(f.cint, pc), quadril: elipse(f.quad, pq), comprimento: f.perna };
   const res = {
     altura: med.altura,
-    cintura: Math.round(elipse(f.cint, pc) * MED.AJUSTE.cintura),
-    quadril: Math.round(elipse(f.quad, pq) * MED.AJUSTE.quadril),
-    comprimento: Math.round(f.perna * MED.AJUSTE.comprimento),
+    cintura: Math.round(bruto.cintura * MED.AJUSTE.cintura),
+    quadril: Math.round(bruto.quadril * MED.AJUSTE.quadril),
+    comprimento: Math.round(bruto.comprimento * MED.AJUSTE.comprimento),
+    bruto: { cintura: +bruto.cintura.toFixed(1), quadril: +bruto.quadril.toFixed(1), comprimento: +bruto.comprimento.toFixed(1) },
   };
   // fora do que a tabela atende = leitura ruim (roupa larga, fundo confuso): mede de novo em vez de salvar lixo
   if (res.cintura < 55 || res.cintura > 120 || res.quadril < 70 || res.quadril > 140 || res.quadril < res.cintura || res.comprimento < 60 || res.comprimento > 110) {
