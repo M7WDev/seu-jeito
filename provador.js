@@ -376,7 +376,7 @@ function medir(r) {
     med.frente = { cint: pega('cint'), quad: pega('quad'), cintRel: pega('cintRel'), quadRel: pega('quadRel'), perna: pega('perna') };
     med.passo = 'lado'; med.lista = []; med.barra.style.width = '0%';
     med.passos[0].classList.add('feito'); med.passos[1].classList.add('agora');
-    return aviso('Agora vire de lado, com os braços cruzados no peito.');
+    return aviso('Pronto, a frente está medida. Agora vire de lado, com os braços cruzados no peito.', true);
   }
   const f = med.frente, pc = mediana(med.lista.map(s => s.cint)), pq = mediana(med.lista.map(s => s.quad));
   const res = {
@@ -389,11 +389,30 @@ function medir(r) {
   if (res.cintura < 55 || res.cintura > 120 || res.quadril < 70 || res.quadril > 140 || res.quadril < res.cintura || res.comprimento < 60 || res.comprimento > 110) {
     med.passo = 'frente'; med.lista = []; med.frente = null; med.barra.style.width = '0%';
     med.passos.forEach(p => p.classList.remove('feito', 'agora')); med.passos[0].classList.add('agora');
-    return aviso('A leitura não ficou boa. Com roupa justa e fundo liso, fique de frente de novo.');
+    return aviso('A leitura não ficou boa. Com roupa justa e fundo liso, fique de frente de novo.', true);
   }
-  pararMedicao(); med.ok(res);
+  falar('Pronto, medidas feitas. Pode voltar ao celular.', true);
+  pararMedicao(false); med.ok(res);
 }
-function aviso(t) { if (med.status.textContent !== t) med.status.textContent = t; }
+/* ---------- voz: a cliente está a 2,5 m e não lê a tela ----------
+   Os avisos mudam a cada frame (um frame sem pé, outro com): só fala o que ficou 1 s na tela, e repete a cada 8 s se
+   ela continuar sem acertar. gora = troca de fase, fala na hora por cima do que estiver falando. */
+const voz = { alvo: '', desde: 0, falado: '', quando: 0, ligada: localStorage.getItem('vozMedicao') !== 'off' };
+function falar(t, agora = false) {
+  if (!voz.ligada || !('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(t), vs = speechSynthesis.getVoices();
+  u.lang = 'pt-BR'; u.voice = vs.find(v => /pt[-_]BR/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
+  if (agora) speechSynthesis.cancel();
+  speechSynthesis.speak(u); voz.falado = t; voz.quando = performance.now();
+}
+function aviso(t, agora = false) {
+  if (med.status.textContent !== t) med.status.textContent = t;
+  const ms = performance.now();
+  if (agora) { voz.alvo = t; return falar(t, true); }
+  if (t !== voz.alvo) { voz.alvo = t; voz.desde = ms; return; }
+  if (ms - voz.desde < 1000 || speechSynthesis.speaking) return;
+  if (t !== voz.falado || ms - voz.quando > 8000) falar(t);
+}
 
 async function loopMedir() {
   if (modo !== 'medir' || !rodando) return;
@@ -411,8 +430,10 @@ function cortar(vw, vh) {
   fonte.width = w; fonte.height = vh;
 }
 
-function pararMedicao() {
+function pararMedicao(calar = true) {
   rodando = false; modo = 'provar';
+  if (calar && 'speechSynthesis' in window) speechSynthesis.cancel();
+  document.querySelector('#medicao .tutorial-video')?.pause();
   vMed?.srcObject?.getTracks().forEach(t => t.stop());
   document.getElementById('medicao').close();
 }
@@ -421,13 +442,22 @@ function pararMedicao() {
 window.medirCorpo = function (altura) {
   return new Promise(async (ok, falha) => {
     const dlg = document.getElementById('medicao');
-    vMed = dlg.querySelector('video'); ctxMed = dlg.querySelector('canvas').getContext('2d');
+    vMed = dlg.querySelector('.cam video'); ctxMed = dlg.querySelector('canvas').getContext('2d');
     med = { altura, passo: 'frente', lista: [], frente: null, ok, status: dlg.querySelector('.status'), barra: dlg.querySelector('.progresso i'),
       passos: [...dlg.querySelectorAll('.passos li')] };
     med.passos.forEach(p => p.classList.remove('feito', 'agora')); med.passos[0].classList.add('agora'); med.barra.style.width = '0%';
     dlg.querySelector('.medicao-fechar').onclick = () => { pararMedicao(); falha(new Error('cancelada')); };
     dlg.oncancel = () => { pararMedicao(); falha(new Error('cancelada')); };
-    aviso('Abrindo a câmera…'); dlg.showModal();
+    // 1º o tutorial em vídeo; a câmera só abre no botão (esse toque também libera a voz no iPhone)
+    const tut = dlg.querySelector('.etapa-tutorial'), cam = dlg.querySelector('.etapa-camera'), filme = dlg.querySelector('.tutorial-video');
+    tut.hidden = false; cam.hidden = true; filme.currentTime = 0; dlg.showModal(); filme.play().catch(() => {});
+    const vozBtn = dlg.querySelector('.voz-btn'), pintarVoz = () => { vozBtn.setAttribute('aria-pressed', voz.ligada); vozBtn.textContent = voz.ligada ? 'Voz ligada' : 'Voz desligada'; };
+    pintarVoz();
+    vozBtn.onclick = () => { voz.ligada = !voz.ligada; localStorage.setItem('vozMedicao', voz.ligada ? 'on' : 'off'); if (!voz.ligada) speechSynthesis.cancel(); pintarVoz(); };
+    await new Promise(seguir => (dlg.querySelector('.comecar').onclick = seguir));
+    filme.pause(); tut.hidden = true; cam.hidden = false;
+    voz.alvo = voz.falado = '';
+    aviso('Abrindo a câmera. Apoie o celular em pé e afaste-se até o corpo inteiro aparecer.', true);
     try {
       await carregarLibs();
       // em pé: pede o vídeo na vertical (9:16), senão o celular manda paisagem e a pessoa fica pequena
@@ -437,7 +467,6 @@ window.medirCorpo = function (altura) {
       dlg.querySelector('.cam').style.aspectRatio = `${corte.w}/${corte.h}`;
       dlg.classList.toggle('paisagem', corte.w > corte.h);
       garantirPose(); modo = 'medir'; rodando = true;
-      aviso('Apoie o celular e afaste-se até o corpo inteiro aparecer.');
       loopMedir();
     } catch (e) {
       console.error(e); pararMedicao();

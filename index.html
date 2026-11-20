@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR" data-type="product" data-radius="soft" data-buttons="block" data-motion>
 <head>
 <meta charset="utf-8">
@@ -145,8 +145,17 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 .cam canvas { z-index: 1; }
 .cam .status { position: absolute; inset: auto 16px 16px; margin: 0; text-align: center; color: #fff; background: rgb(0 0 0 / .55); padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); z-index: 2; }
 .cam .status:empty { display: none; }
-#provador > p, #medicao > p { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
+#provador > p, #medicao .dica { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
 #medicao { width: min(560px, calc(100% - 32px)); }
+#medicao .dlg-head { gap: var(--s-3); }
+#medicao .dlg-head h3 { margin-right: auto; }
+.dlg-head .voz-btn { width: auto; height: auto; margin: 0; font-size: 14px; line-height: 1; white-space: nowrap; }
+.voz-btn { min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: none; color: var(--ink); font: 500 14px var(--font-text); cursor: pointer; }
+.voz-btn[aria-pressed="false"] { color: var(--muted); }
+.tutorial-video { display: block; width: 100%; max-height: 64vh; background: #111; aspect-ratio: 9 / 16; object-fit: contain; }
+.tutorial-acoes { display: grid; gap: var(--s-3); padding: var(--s-5) var(--s-6); }
+.tutorial-acoes .btn { width: 100%; }
+.tutorial-acoes p { color: var(--muted); font-size: var(--t-small); text-align: center; }
 #medicao .cam { max-height: 72vh; }
 /* a cliente lê o aviso a 2,5 m do celular: letra grande */
 #medicao .status { inset: auto 12px 12px; font-size: 20px; line-height: 1.35; padding: var(--s-4); }
@@ -154,13 +163,16 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 @media (max-width: 640px) {
   #medicao[open] { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; display: flex; flex-direction: column; border-radius: 0; }
   #medicao .dlg-head { padding: var(--s-2) var(--s-4); }
+  .etapa-tutorial:not([hidden]), .etapa-camera:not([hidden]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .tutorial-video { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto; }
+  .tutorial-acoes { padding: var(--s-4) var(--s-4) calc(var(--s-4) + env(safe-area-inset-bottom)); }
   #medicao .cam { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto !important; }
   /* vídeo deitado: corta as laterais (a pessoa fica no meio) em vez de ficar uma faixa pequena; em pé, mostra inteiro */
   #medicao.paisagem canvas { object-fit: cover; }
   #medicao .passos { margin: var(--s-3) var(--s-4) 0; font-size: 14px; }
-  #medicao > p { padding: var(--s-2) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); font-size: 13px; }
+  #medicao .dica { padding: var(--s-2) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); font-size: 13px; }
 }
-#medicao video { opacity: 0; } /* o canvas mostra o frame com as linhas de medida */
+#medicao .cam video { opacity: 0; } /* o canvas mostra o frame com as linhas de medida */
 .progresso { height: 4px; background: var(--line); }
 .progresso i { display: block; height: 100%; width: 0; background: var(--action); transition: width 200ms ease; }
 .passos { margin: var(--s-4) var(--s-6) 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); color: var(--muted); }
@@ -415,14 +427,25 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 </dialog>
 
 <dialog id="medicao" aria-labelledby="medicao-h">
-  <div class="dlg-head"><h3 id="medicao-h">Medir com a câmera</h3><button type="button" class="medicao-fechar" aria-label="Fechar medição">×</button></div>
-  <div class="cam"><video playsinline muted></video><canvas></canvas><p class="status"></p></div>
-  <div class="progresso" aria-hidden="true"><i></i></div>
-  <ol class="passos">
-    <li>De frente, corpo inteiro no quadro, braços afastados do corpo.</li>
-    <li>De lado, com os braços cruzados no peito.</li>
-  </ol>
-  <p>Use roupa justa, fique descalça e apoie o celular na altura da cintura, a uns 2,5 m. As imagens ficam só no seu aparelho.</p>
+  <div class="dlg-head"><h3 id="medicao-h">Medir com a câmera</h3><button type="button" class="voz-btn" aria-pressed="true">Voz ligada</button><button type="button" class="medicao-fechar" aria-label="Fechar medição">×</button></div>
+  <!-- etapa 1: o tutorial (vídeo feito no Remotion, projeto em Downloads/seu-jeito-tutorial) -->
+  <div class="etapa-tutorial">
+    <video class="tutorial-video" src="img/tutorial-medicao.mp4" poster="img/tutorial-medicao.jpg" playsinline muted controls preload="metadata"></video>
+    <div class="tutorial-acoes">
+      <button type="button" class="btn btn--primary comecar">Abrir a câmera e medir</button>
+      <p>Durante a medição a voz diz o que fazer. Nenhuma imagem é gravada nem enviada.</p>
+    </div>
+  </div>
+  <!-- etapa 2: a câmera -->
+  <div class="etapa-camera" hidden>
+    <div class="cam"><video playsinline muted></video><canvas></canvas><p class="status" aria-live="polite"></p></div>
+    <div class="progresso" aria-hidden="true"><i></i></div>
+    <ol class="passos">
+      <li>De frente, corpo inteiro no quadro, braços afastados do corpo.</li>
+      <li>De lado, com os braços cruzados no peito.</li>
+    </ol>
+    <p class="dica">Use roupa justa, fique descalça e apoie o celular em pé na altura da cintura, a uns 2,5 m. As imagens ficam só no seu aparelho.</p>
+  </div>
 </dialog>
 
 <dialog id="provador" aria-labelledby="provador-h">
@@ -431,8 +454,8 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   <p>Fique de frente, com o corpo inteiro no quadro. A projeção é uma prévia; o caimento real segue as suas medidas.</p>
 </dialog>
 
-<script src="loja.js?v=5"></script>
-<script type="module" src="provador.js?v=5"></script>
+<script src="loja.js?v=6"></script>
+<script type="module" src="provador.js?v=6"></script>
 <script type="module" src="assets/system.js"></script>
 <script type="module" src="assets/motion/motion.js"></script>
 <script type="module" src="assets/layout/layout.js"></script>
