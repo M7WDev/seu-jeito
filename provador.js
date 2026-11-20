@@ -275,7 +275,7 @@ window.fecharProvador = function () {
    ponytail: elipse + máscara do MediaPipe (erro típico de 2 a 4 cm). AJUSTE calibra contra fita métrica; upgrade = modelo
    de corpo (SMPL) ou mais vistas. */
 const MED = { amostras: 12, AJUSTE: { cintura: 1, quadril: 1, comprimento: 1 } };
-let med, vMed, ctxMed, ctxMask;
+let med, vMed, ctxMed, ctxMask, fonte, corte; // fonte = canvas em pé que vai pro Pose (o vídeo recortado)
 
 // máscara de segmentação → grade 0/1 pequena (240 px de largura basta pra medir e é rápida)
 function lerMascara(mask, W, H) {
@@ -356,7 +356,7 @@ function amostraLado(m, L, lm) {
 
 function medir(r) {
   if (!vMed) return;
-  const W = vMed.videoWidth, H = vMed.videoHeight, lm = r.poseLandmarks, c = ctxMed;
+  const W = fonte.width, H = fonte.height, lm = r.poseLandmarks, c = ctxMed;
   c.canvas.width = W; c.canvas.height = H; c.drawImage(r.image, 0, 0, W, H);
   if (!lm || !r.segmentationMask) return aviso('Afaste-se até o corpo inteiro aparecer, da cabeça aos pés.');
   const m = lerMascara(r.segmentationMask, W, H), L = i => ({ x: lm[i].x * m.w, y: lm[i].y * m.h });
@@ -395,7 +395,21 @@ function medir(r) {
 }
 function aviso(t) { if (med.status.textContent !== t) med.status.textContent = t; }
 
-async function loopMedir() { if (modo !== 'medir' || !rodando) return; await pose.send({ image: vMed }); requestAnimationFrame(loopMedir); }
+async function loopMedir() {
+  if (modo !== 'medir' || !rodando) return;
+  fonte.getContext('2d').drawImage(vMed, corte.x, 0, corte.w, corte.h, 0, 0, corte.w, corte.h);
+  await pose.send({ image: fonte }); requestAnimationFrame(loopMedir);
+}
+// vídeo deitado com o celular em pé (vários Android ignoram o pedido de 9:16): usa só a faixa do meio, em 9:16.
+// A pessoa fica no centro e a medição vê exatamente o que aparece na tela.
+// ponytail: perde resolução (a faixa tem ~56% da largura); se medir mal em câmera fraca, pedir 1920x1080.
+function cortar(vw, vh) {
+  const emPe = innerHeight > innerWidth;
+  const w = emPe && vw > vh ? Math.round(vh * 9 / 16) : vw;
+  corte = { x: Math.round((vw - w) / 2), w, h: vh };
+  fonte ||= document.createElement('canvas');
+  fonte.width = w; fonte.height = vh;
+}
 
 function pararMedicao() {
   rodando = false; modo = 'provar';
@@ -419,8 +433,9 @@ window.medirCorpo = function (altura) {
       // em pé: pede o vídeo na vertical (9:16), senão o celular manda paisagem e a pessoa fica pequena
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { ideal: 9 / 16 } } });
       vMed.srcObject = stream; await vMed.play();
-      dlg.querySelector('.cam').style.aspectRatio = `${vMed.videoWidth}/${vMed.videoHeight}`;
-      dlg.classList.toggle('paisagem', vMed.videoWidth > vMed.videoHeight);
+      cortar(vMed.videoWidth, vMed.videoHeight);
+      dlg.querySelector('.cam').style.aspectRatio = `${corte.w}/${corte.h}`;
+      dlg.classList.toggle('paisagem', corte.w > corte.h);
       garantirPose(); modo = 'medir'; rodando = true;
       aviso('Apoie o celular e afaste-se até o corpo inteiro aparecer.');
       loopMedir();
