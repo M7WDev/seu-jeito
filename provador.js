@@ -416,9 +416,11 @@ window.medirCorpo = function (altura) {
     aviso('Abrindo a câmera…'); dlg.showModal();
     try {
       await carregarLibs();
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } } });
+      // em pé: pede o vídeo na vertical (9:16), senão o celular manda paisagem e a pessoa fica pequena
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { ideal: 9 / 16 } } });
       vMed.srcObject = stream; await vMed.play();
       dlg.querySelector('.cam').style.aspectRatio = `${vMed.videoWidth}/${vMed.videoHeight}`;
+      dlg.classList.toggle('paisagem', vMed.videoWidth > vMed.videoHeight);
       garantirPose(); modo = 'medir'; rodando = true;
       aviso('Apoie o celular e afaste-se até o corpo inteiro aparecer.');
       loopMedir();

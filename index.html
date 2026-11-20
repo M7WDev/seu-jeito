@@ -146,7 +146,20 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 .cam .status { position: absolute; inset: auto 16px 16px; margin: 0; text-align: center; color: #fff; background: rgb(0 0 0 / .55); padding: var(--s-3) var(--s-4); border-radius: var(--r-sm); z-index: 2; }
 .cam .status:empty { display: none; }
 #provador > p, #medicao > p { padding: var(--s-4) var(--s-6) var(--s-5); color: var(--muted); font-size: var(--t-small); }
-#medicao { width: min(480px, calc(100% - 32px)); }
+#medicao { width: min(560px, calc(100% - 32px)); }
+#medicao .cam { max-height: 72vh; }
+/* a cliente lê o aviso a 2,5 m do celular: letra grande */
+#medicao .status { inset: auto 12px 12px; font-size: 20px; line-height: 1.35; padding: var(--s-4); }
+/* celular: tela cheia, o vídeo ocupa tudo que sobra */
+@media (max-width: 640px) {
+  #medicao[open] { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; display: flex; flex-direction: column; border-radius: 0; }
+  #medicao .dlg-head { padding: var(--s-2) var(--s-4); }
+  #medicao .cam { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto !important; }
+  /* vídeo deitado: corta as laterais (a pessoa fica no meio) em vez de ficar uma faixa pequena; em pé, mostra inteiro */
+  #medicao.paisagem canvas { object-fit: cover; }
+  #medicao .passos { margin: var(--s-3) var(--s-4) 0; font-size: 14px; }
+  #medicao > p { padding: var(--s-2) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); font-size: 13px; }
+}
 #medicao video { opacity: 0; } /* o canvas mostra o frame com as linhas de medida */
 .progresso { height: 4px; background: var(--line); }
 .progresso i { display: block; height: 100%; width: 0; background: var(--action); transition: width 200ms ease; }
