@@ -1,5 +1,5 @@
 // Mundo 3D: um palco fixo atrás da abertura, do manifesto e da coleção. A rolagem leva a câmera de parada em parada e os
-// pedras (Safira, Esmeralda, Rubi, Turmalina: os tamanhos da marca) se rearranjam em volta de cada modelo. Só Three.js: quatro InstancedMesh, fotos recortadas em planos e poeira.
+// blocos se rearranjam em volta de cada modelo. Só Three.js: um InstancedMesh, fotos recortadas em planos e poeira.
 // Sem WebGL, aparelho fraco, economia de dados ou movimento reduzido: fica a página estática (sem a classe cena-3d).
 const raiz = document.documentElement;
 const mundo = document.querySelector('.mundo'), secao = document.getElementById('abertura');
@@ -18,7 +18,7 @@ const mistura = (a, b, k) => a + (b - a) * k;
 
 async function cena() {
   const fraco = matchMedia('(max-width: 820px), (pointer: coarse)').matches;
-  const [THREE, { RoomEnvironment }] = await Promise.all([import('three'), import('three/addons/environments/RoomEnvironment.js'),
+  const [THREE, { RoundedBoxGeometry }] = await Promise.all([import('three'), import('three/addons/geometries/RoundedBoxGeometry.js'),
     document.fonts.load(`600 200px ${FONTE}`, 'NÃO')]);
   const canvas = mundo.querySelector('canvas'), claro = mundo.querySelector('.abertura__claro'), pe = secao.querySelector('.abertura__pe');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -41,8 +41,6 @@ async function cena() {
   // chão liso que some na névoa
   const chao = new THREE.Mesh(new THREE.PlaneGeometry(60, 110).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ecdcc6', roughness: 1 }));
   chao.position.z = -35; chao.receiveShadow = true; scene.add(chao);
-
-  let emPe = false;
 
   /* ---------- paradas: modelo + pódio ---------- */
   const ALT = 3, PISO = .22;
@@ -71,47 +69,14 @@ async function cena() {
     }).catch(() => {});
   }
 
-  /* ---------- pedras: uma lapidação por tamanho, 78 no total, uma forma por parada ---------- */
-  const N = 78, TIPOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
-  const CORES = ['#0f2f86', '#06583c', '#8c0a22', '#8e2c56'].map(c => new THREE.Color(c));
-  // torno facetado: [raio, altura] de baixo para cima; depois encaixa na caixa de lado 1 com a mesa virada para a câmera
-  const lapidar = (perfil, lados, ex = 1, deitar = true) => {
-    const g = new THREE.LatheGeometry(perfil.map(p => new THREE.Vector2(...p)), lados).rotateY(Math.PI / lados);
-    g.scale(ex, 1, 1); if (deitar) g.rotateX(Math.PI / 2);
-    g.computeBoundingBox(); const t = g.boundingBox.getSize(new THREE.Vector3()), m = Math.max(t.x, t.y, t.z);
-    return g.center().scale(1 / m, 1 / m, 1 / m);
-  };
-  const cortes = [
-    lapidar([[0, -.55], [.45, -.28], [.82, -.02], [1, .12], [.95, .2], [.72, .36], [.55, .42], [0, .42]], 10, .78), // oval
-    lapidar([[0, -.4], [.4, -.36], [.78, -.12], [1, .08], [1, .16], [.84, .28], [.68, .36], [0, .36]], 8, .74),     // degraus, oito lados
-    lapidar([[0, -.78], [.55, -.36], [1, 0], [1, .07], [.78, .26], [.56, .36], [0, .36]], 16),                     // redonda
-    lapidar([[0, -1.5], [.5, -1.05], [.5, 1.05], [.3, 1.4], [0, 1.5]], 6, 1, false),                               // prisma bruto
-  ];
-  const pm = new THREE.PMREMGenerator(renderer), ambiente = pm.fromScene(new RoomEnvironment(), .03).texture; pm.dispose();
-  const gema = new THREE.MeshStandardMaterial({ roughness: .1, metalness: 0, flatShading: true, envMap: ambiente, envMapIntensity: .8 });
-  // refração de mentira: o raio dobrado desloca um desenho de estrela (o fundo da lapidação visto por dentro)
-  gema.onBeforeCompile = s => {
-    s.vertexShader = 'varying vec3 vLocal;\n' + s.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vLocal = position;');
-    s.fragmentShader = 'varying vec3 vLocal;\n' + s.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-    { vec3 olho = normalize(vViewPosition), d = refract(-olho, normal, .45);
-      vec2 p = vLocal.xy + d.xy*.32 + vec2(.001); float raio = length(p)*4.2, anelN = floor(raio);
-      float setor = atan(p.y, p.x)*2.5465 + anelN*.5;                 // 16 fatias, cada anel meia fatia adiante
-      float bico = abs(fract(setor) - .5)*2., dente = step(bico, fract(raio));
-      float acaso = fract(sin(floor(setor)*12.9 + anelN*78.2 + dente*37.7)*437.5);
-      float f = .25 + .75*abs(sin(acaso*6.28 + dot(d, vec3(6., 9., 4.))));
-      float borda = pow(1. - abs(dot(normal, olho)), 3.);
-      totalEmissiveRadiance += diffuseColor.rgb*(.08 + 1.7*f*f*f) + mix(diffuseColor.rgb, vec3(1.), .5)*(.22*pow(f, 8.) + .22*borda);
-      diffuseColor.rgb *= .25 + .35*f; }`);
-  };
-  const malhas = cortes.map((g, k) => {
-    const m = new THREE.InstancedMesh(g, gema, Math.ceil((N - k) / 4));
-    m.castShadow = true; m.frustumCulled = false; scene.add(m); return m;
-  });
+  /* ---------- blocos: 78 peças, uma forma por parada ---------- */
+  const N = 78, blocos = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 2, .05), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .82 }), N);
+  blocos.castShadow = blocos.receiveShadow = true; blocos.frustumCulled = false;
+  scene.add(blocos);
   let semente = 7; const acaso = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
   const sorte = Array.from({ length: N }, () => ({ a: acaso(), b: acaso(), c: acaso(), d: acaso() }));
-  const corAtual = sorte.map((s, i) => CORES[i % 4].clone());
-  const fichas = [...colecao.querySelectorAll('.peca select')], escolhida = [null, null, null, null];
-  fichas.forEach((f, k) => f.addEventListener('change', () => { escolhida[k] = TIPOS.indexOf(f.value); }));
+  const tons = ['#f4e6d0', '#eddabf', '#e6cfae', '#f7eddd'].map(c => new THREE.Color(c));
+  sorte.forEach((s, i) => blocos.setColorAt(i, tons[Math.floor(s.d * 4)]));
   // cada forma devolve posição, giro (z) e tamanho do bloco i, com a parada na origem
   const anel = (i, n, r, y, de, ate, larg, prof, z = -.75) => { const a = mistura(de, ate, n > 1 ? i / (n - 1) : 0); return { x: Math.cos(a) * r, y: y + Math.sin(a) * r, z, g: a, s: [larg, Math.abs(ate - de) * r / Math.max(1, n - 1) * .94, prof] }; };
   const arco = i => { // três arcos encaixados, um atrás do outro
@@ -128,21 +93,11 @@ async function cena() {
     return { x: mistura(-L, L, (j - 28) / 10), y: T + .1, z, g: 0, s: [L / 5 * .94, .42, .5] };
   };
   const escada = i => { const a = i / N * Math.PI * 3.4 - .4, r = 1.75; return { x: Math.cos(a) * r, y: .1 + i / N * 4.3, z: -.6 + Math.sin(a) * r * .6 - .9, g: 0, s: [.62, .2, .62], gy: -a }; };
-  // manifesto: metade no alto, metade pousada no chão, para não passar atrás do texto
-  const solto = i => { const s = sorte[i], chao = i % 5 < 2; return { x: chao ? 1.5 + s.a * 6 : (s.a - .5) * 13, y: chao ? .16 : 4.4 + s.c * 1.9, z: (chao ? -6.5 : -3) - s.d * 5, g: s.a * 6, gx: s.b * 5, s: Array(3).fill(.26 + s.b * .34) }; };
-  // abertura: guirlanda por cima da frase e montes no chão dos dois lados
-  const coroa = i => {
-    const s = sorte[i], b = emPe ? .36 : 1;
-    if (i < 40) { const a = Math.PI * (i / 39), k = i % 2; return { x: Math.cos(a) * (emPe ? 1.25 : 3.5) * (1 + k * .09), y: (emPe ? 2.2 : 2.75) + Math.sin(a) * (emPe ? .95 : .62) + k * .16, z: -1.5 - k * .5, g: a * 2, gx: s.b - .5, s: Array(3).fill((emPe ? .1 : .14) + s.c * s.c * (emPe ? .24 : .4)) }; }
-    const l = i % 2 ? 1 : -1, u = s.a; return { x: l * (emPe ? .62 + u * .5 : 1.75 + u * 1.9), y: .12 + (1 - Math.abs(u - .5) * 2) * s.b * .42, z: -.9 + s.c * 1.1, g: s.d * 6, gx: s.c * 4, s: Array(3).fill((.2 + s.d * .26) * (emPe ? .7 : 1)) };
-  };
+  const solto = i => { const s = sorte[i]; return { x: (s.a < .5 ? -1 : 1) * (.8 + s.b * 6), y: .3 + s.c * 5.5, z: -2.5 - s.d * 9, g: s.a * 6, gx: s.b * 5, s: [.2 + s.c * .42, .2 + s.a * .42, .2 + s.b * .42] }; };
+  const fundo = i => { const p = arco(i); return { ...p, x: p.x * 1.25, y: p.y * 1.1, z: p.z - 2.4, s: p.s.map(v => v * 1.2) }; }; // na abertura o arco fica atrás da frase
   const justo = i => { const p = arco(i); return { ...p, x: p.x * .68, s: [p.s[0] * .68, p.s[1], p.s[2]] }; };
-  const formas = [coroa, solto, portal, roda, justo, escada, solto];
-  let prontos = [];
-  const formar = () => { prontos = formas.map((f, k) => Array.from({ length: N }, (_, i) => { // pedra não estica: vira o tamanho médio
-    const p = f(i), c = k > 1 && k < 6, o = sorte[(i * 7 + k * 13) % N]; // nas paradas: tamanhos e posições desiguais, como joia e não como colar de contas
-    const m = Math.cbrt(p.s[0] * p.s[1] * p.s[2]) * (c ? .5 + 1.05 * o.a * o.a : 1);
-    return c ? { ...p, x: p.x + (o.b - .5) * .34, y: p.y + (o.c - .5) * .3, z: p.z + (o.d - .5) * .9, g: p.g + o.a * 6, gx: (o.b - .5) * 1.8, gy: (o.c - .5) * 1.8, m } : { ...p, m }; })); };
+  const formas = [fundo, solto, portal, roda, justo, escada, solto];
+  const prontos = formas.map((f, k) => Array.from({ length: N }, (_, i) => f(i)));
   const salto = new Float32Array(N), V = new THREE.Vector3(), ponteiro = { x: 9, y: 9 };
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), P = new THREE.Vector3(), S = new THREE.Vector3();
   const lugar = (k, i) => prontos[k][i];
@@ -150,15 +105,14 @@ async function cena() {
     const k = Math.min(5, Math.floor(s)), f = s - k;
     const A = paradas[k], zB = k < 5 ? paradas[k + 1].z : -6 * PASSO, xB = k < 5 ? paradas[k + 1].x : 0;
     for (let i = 0; i < N; i++) {
-      const r = sorte[i], q = macio(entre(.08 + r.c * .28, .62 + r.c * .3, f)); // cada pedra sai na sua hora
+      const r = sorte[i], q = macio(entre(.08 + r.c * .28, .62 + r.c * .3, f)); // cada bloco sai na sua hora
       const a = lugar(k, i), b = lugar(k + 1, i), alto = Math.sin(q * Math.PI);
       const vivo = (k === 1 && q < 1) || (k === 0 && q > 0) || k + 1 === 1 ? 1 : .12; // solto balança mais
       P.set(mistura(a.x + A.x, b.x + xB, q) + (r.a - .5) * 5 * alto + (r.a < .5 ? -1.6 : 1.6) * alto,
         mistura(a.y, b.y, q) + (r.b - .3) * 1.8 * alto + Math.sin(t * .6 + r.d * 9) * .05 * vivo,
         mistura(a.z + A.z, b.z + zB, q));
       E.set(mistura(a.gx || 0, b.gx || 0, q) + alto * (r.b - .5) * 3, mistura(a.gy || 0, b.gy || 0, q) + alto * (r.c - .5) * 3, mistura(a.g, b.g, q));
-      E.y += Math.sin(t * .5 + r.d * 12) * .35; E.x += Math.cos(t * .4 + r.a * 12) * .22; // gira de leve para as facetas brilharem
-      S.setScalar(mistura(a.m, b.m, q));
+      S.set(mistura(a.s[0], b.s[0], q), mistura(a.s[1], b.s[1], q), mistura(a.s[2], b.s[2], q));
       if (ponteiro.x < 2) {
         V.copy(P).project(camera);
         const dist = Math.hypot((V.x - ponteiro.x) * camera.aspect, V.y - ponteiro.y);
@@ -166,11 +120,40 @@ async function cena() {
         P.z += salto[i] * .5; E.z += salto[i] * (r.a - .5) * .5; E.y += salto[i] * (r.b - .5) * .6;
       }
       if (P.y < S.y * .5) P.y = S.y * .5;
-      const tipo = i % 4, j = (i - tipo) / 4, malha = malhas[tipo], n = Math.round(s) - 2, esc = escolhida[n] ?? (n >= 0 && n < 4 ? n : null);
-      malha.setMatrixAt(j, M.compose(P, Q.setFromEuler(E), S));
-      malha.setColorAt(j, corAtual[i].lerp(CORES[esc ?? tipo], .08)); // uma pedra por parada; escolheu o tamanho, vira a dele
+      blocos.setMatrixAt(i, M.compose(P, Q.setFromEuler(E), S));
     }
-    malhas.forEach(m => { m.instanceMatrix.needsUpdate = m.instanceColor.needsUpdate = true; });
+    blocos.instanceMatrix.needsUpdate = true;
+  }
+
+  /* ---------- pedras: os tamanhos da marca, poucas e desfocadas (imagem já desfocada, sem custo de efeito) ---------- */
+  const TIPOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
+  const pedraTex = await Promise.all(TIPOS.map(n => carregar.loadAsync(`img/pedra-${n.toLowerCase()}.webp`)));
+  pedraTex.forEach(t => { t.colorSpace = THREE.SRGBColorSpace; });
+  // por parada: [lado, altura (-1 a 1 da tela), distância da câmera, tamanho, tipo]
+  const PEDRAS = [
+    [[-1, -.5, 3, .48, 0], [1.02, .5, 3.2, .42, 2], [.94, -.62, 5.2, .5, 1], [-.9, .62, 5.6, .44, 3], [-.62, -.5, 9.5, .34, 2]],
+    [[.96, .7, 3, .5, 1], [.8, -.72, 3.4, .56, 0], [-.95, -.8, 4.2, .4, 2], [.55, -.6, 8, .4, 3]],
+    ...[0, 1, 2, 3].map(k => { const l = k % 2 ? 1 : -1; return [[l * .97, -.6, 3, .52], [l * .9, .74, 3.4, .44], [l * .1, -.72, 4, .3], [-l * .92, -.84, 3.4, .42], [-l * .86, .74, 9, .5]].map(p => [...p, k]); }),
+  ];
+  const pedras = PEDRAS.flatMap((lista, k) => lista.map(([lado, alt, dist, tam, tipo], j) => {
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: pedraTex[tipo], transparent: true, depthWrite: false, depthTest: dist > 6, toneMapped: false, fog: false }));
+    m.userData = { k, lado, alt, dist, tam, tipo, fase: k * 2.1 + j * 1.7 }; m.renderOrder = dist > 6 ? 1 : 6; scene.add(m); return m;
+  }));
+  const escolhida = [null, null, null, null];
+  colecao.querySelectorAll('.peca select').forEach((f, n) => f.addEventListener('change', () => { // escolheu o tamanho: as pedras da parada viram a dele
+    escolhida[n] = TIPOS.indexOf(f.value);
+    pedras.forEach(p => { if (p.userData.k === n + 2) p.material.map = pedraTex[escolhida[n]]; });
+  }));
+  function flutuar(s, t) {
+    const tan = Math.tan(camera.fov * Math.PI / 360);
+    pedras.forEach(p => {
+      const u = p.userData, d = u.k ? quadro.dp : quadro.d, y = u.k === 1 && emPe ? 1.8 : u.k ? quadro.yp : quadro.y, meia = u.dist * tan;
+      p.visible = Math.abs(s - u.k) < .9 && !(emPe && (u.k > 1 ? u.alt < 0 : !u.k && u.alt > 0)); if (!p.visible) return; // em pé: nem sobre a ficha (embaixo) nem sobre a frase (em cima)
+      p.position.set(u.lado * meia * camera.aspect, y + u.alt * meia + Math.sin(t * .5 + u.fase) * .05, -u.k * PASSO + d - u.dist);
+      p.material.rotation = Math.sin(t * .22 + u.fase) * .35;
+      p.material.opacity = .92 * entre(.7, 2, camera.position.z - p.position.z) * (1 - entre(.55, .9, Math.abs(s - u.k)));
+      p.scale.setScalar(u.tam * 1.5 * (emPe ? .62 : 1));
+    });
   }
 
   /* ---------- poeira ---------- */
@@ -199,14 +182,13 @@ async function cena() {
     m.position.set(x, y, -.3); m.userData = { x, lado }; m.renderOrder = 1; letras.add(m); palavras.push(m);
   }
   const quadro = { d: 7, y: 1.8, dp: 7, yp: 1.8 };
-  let centros = [];
+  let emPe = false, centros = [];
   function medir() {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false); poeiraMat.uniforms.px.value = dpr * h / 900;
     camera.aspect = w / h; camera.updateProjectionMatrix();
     palavras.forEach(p => { p.material.map.dispose(); p.material.dispose(); p.geometry.dispose(); }); letras.clear(); palavras = [];
     emPe = camera.aspect < 1;
-    formar();
     const tan = Math.tan(camera.fov * Math.PI / 360), av = emPe ? Math.max(5.1, 2 / camera.aspect) : 4;
     quadro.d = av / 2 / tan; quadro.y = emPe ? PISO + ALT * .69 : PISO + ALT * .5;
     const avp = emPe ? Math.max(6.2, 2.6 / camera.aspect) : 4.5;
@@ -249,7 +231,7 @@ async function cena() {
     camera.position.set(passeio + olhar.x * .6 + Math.sin(t * .25) * .05, y - olhar.y * .25 + Math.sin(t * .2) * .03, z);
     camera.lookAt(passeio * .4 + olhar.x * .15, y, z - d);
     sol.position.set(-4.5, 7, z - d + 6); sol.target.position.set(0, 1, z - d);
-    arranjar(s, t);
+    arranjar(s, t); flutuar(s, t);
     paradas.forEach((p, i) => {
       if (p.nome && !p.pedida && Math.abs(s - i) < 1.6) montar(p);
       if (!p.grupo) return;
@@ -294,7 +276,7 @@ async function cena() {
     posicionar(ms, dt);
     renderer.render(scene, camera);
   });
-  window._abertura = { renderer, scene, camera, paradas, letras, poeira }; // pra testar
+  window._abertura = { renderer, scene, camera, paradas, letras, poeira, pedras }; // pra testar
 }
 
 if (raiz.classList.contains('cena-3d')) cena().catch(e => { console.warn('mundo: página estática', e); semCena(); });
