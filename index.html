@@ -17,7 +17,7 @@
 <meta name="page-type" content="product">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400..700&family=Bodoni+Moda:opsz,wght@28,400..600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/system.css">
 <link rel="stylesheet" href="assets/ui/cards.css">
 <link rel="stylesheet" href="assets/motion/motion.css">
@@ -43,26 +43,27 @@
 <link rel="modulepreload" href="assets/moments/lib.js">
 <link rel="modulepreload" href="assets/moments/photo-chapters/moment.js">
 <link rel="stylesheet" href="medicao.css?v=1">
+<link rel="stylesheet" href="abertura.css?v=3">
+<link rel="preload" as="image" href="img/modelo-hero.webp">
+<script>
+/* cena 3D só em aparelho que aguenta; senão fica a composição estática */
+(() => {
+  const n = navigator, c = document.documentElement.classList;
+  const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true });
+  if (gl && !matchMedia('(prefers-reduced-motion: reduce)').matches && !n.connection?.saveData && (n.deviceMemory ?? 8) >= 3 && (n.hardwareConcurrency ?? 8) >= 4) c.add('cena-3d');
+  gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  setTimeout(() => { if (!c.contains('cena-pronta')) c.remove('cena-3d'); }, 8000);
+})();
+</script>
 <style>
 /* page CSS: só o que fica dentro de uma foto, da loja ou dos diálogos */
 .nav__logo img { height: 34px; width: auto; }
 .footer--dark .nav__logo img { height: 40px; filter: brightness(0) invert(1); }
-.hero--product .hero__stage img { --ly-pos: 50% 38%; }
-@media (max-width: 639px) { .hero--product .hero__stage { aspect-ratio: 4 / 3; } }
 
-/* modelos: quatro peças, foto 3:4 com a cabeça inteira */
-#modelos .tile { --tile-ratio: 3 / 4; }
-#modelos .tile__media > img { object-position: 50% 0; }
-.provar { position: absolute; left: 50%; bottom: var(--s-4); translate: -50% 0; z-index: 1; min-height: 44px; padding: 0 var(--s-5);
-  border: 0; border-radius: var(--r-btn); background: var(--bg); color: var(--ink); font: 500 16px/1 var(--font-text); cursor: pointer;
-  opacity: 0; transition: opacity 220ms var(--ease), translate 220ms var(--ease); }
-.tile:is(:hover, :focus-within) .provar { opacity: 1; }
-@media (hover: none) { .provar { opacity: 1; } }
 .compra { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: end; }
 .compra label { display: grid; gap: var(--s-1); font-size: var(--t-small); color: var(--muted); }
 .compra select { min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); color: var(--ink); font: 16px var(--font-text); }
 .compra .btn { flex: 1 1 140px; }
-#modelos .tile { min-width: 0; }
 @media (max-width: 639px) { .nav__logo img { height: 28px; } }
 
 /* comprimento: a barra no chão */
@@ -135,7 +136,7 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 </head>
 <body>
 <!-- type: product (calças femininas vendidas online, pedido pelo WhatsApp)
-     deal: hero product (deal 2; o 1º, film, pede um filme que o cliente não tem), nav-split, close-type, footer-dark,
+     abertura 3D, manifesto e coleção: conceito do cliente (2026-11-24), fora do deal; nav-split, close-type, footer-dark,
      rhythm dark-band, buttons block, mark: o logo do cliente. Paleta: as cores do próprio logo e das fotos (creme, marrom), via start.mjs brand. Tipo: albert.
      moments: photo-chapters em #detalhes -->
 
@@ -168,50 +169,88 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 </header>
 
 <main id="top">
-  <section class="hero hero--product" data-enter aria-labelledby="hero-h">
-    <div class="wrap"><div class="hero-text hero__in">
-      <div class="hero__head">
-        <div>
-          <h1 id="hero-h">Calças para quem tem até 1,55m</h1>
-          <p class="hero__lead">Alfaiataria, wide leg, reta e jeans com cintura e barra cortadas para a sua altura. Você veste sem ajuste, a partir de <span data-assumed>R$&nbsp;179,90</span>.</p>
-        </div>
-        <div class="btn-row"><a class="btn btn--primary" href="#modelos">Comprar minha calça<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a><a class="btn btn--secondary" href="#comprimento">Ver o comprimento</a></div>
-      </div>
-      <div class="hero__stage">
-        <img src="img/sentada.jpg" srcset="img/sentada-640.jpg 640w, img/sentada.jpg 1600w" sizes="100vw" alt="Mulher sentada num degrau de pedra, de regata preta e calça bege de perna larga" fetchpriority="high" data-source="client" data-subject="calça bege em uso" width="1559" height="997">
-      </div>
-    </div></div>
-  </section>
+  <div class="mundo">
+  <div class="mundo__palco"><canvas aria-hidden="true"></canvas><div class="abertura__claro"></div></div>
+  <div class="abertura" id="abertura" role="region" aria-labelledby="hero-h">
+    <div class="abertura__palco">
+      <h1 id="hero-h"><span><b>NÃO É </b><b>VOCÊ </b></span><span><b>QUE </b><b>PRECISA </b></span><span><b>SE </b><b>AJUSTAR.</b></span></h1>
+      <img class="abertura__modelo" src="img/modelo-hero.webp" alt="Mulher de regata clara e calça terracota de perna larga, mãos nos bolsos" width="557" height="1490">
+      <div class="abertura__pe"><a href="#manifesto">ROLE PARA DESCOBRIR<span aria-hidden="true">↓</span></a><a href="#modelos">VER AS CALÇAS</a></div>
+    </div>
+  </div>
 
-  <section class="section" id="modelos" aria-labelledby="modelos-h">
+  <div class="manifesto" id="manifesto" role="region" aria-labelledby="manifesto-h">
     <div class="wrap">
-      <div class="section-head">
-        <h2 id="modelos-h">Calças em 4 modelos e 4 tamanhos. <span class="muted">Do Safira ao Turmalina, pela sua cintura.</span></h2>
-      </div>
-      <div class="grid">
-        <article class="tile span-3" data-id="alfaiataria">
-          <div class="tile__media"><img src="img/alfaiataria.jpg?v=2" srcset="img/alfaiataria-640.jpg 640w, img/alfaiataria.jpg?v=2 1600w" sizes="(max-width: 639px) 50vw, 25vw" alt="Mulher de calça de alfaiataria preta e camisa clara" loading="lazy" width="1024" height="1536"><button type="button" class="provar">Provar na câmera</button></div>
-          <div class="tile__head"><h3>Calça alfaiataria</h3><strong class="tile__price preco" data-assumed></strong></div>
-          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--secondary add">Pôr na sacola</button></div>
-        </article>
-        <article class="tile span-3" data-id="wideleg">
-          <div class="tile__media"><img src="img/wideleg.jpg?v=2" srcset="img/wideleg-640.jpg 640w, img/wideleg.jpg?v=2 1600w" sizes="(max-width: 639px) 50vw, 25vw" alt="Mulher de camisa branca e calça wide leg bege, com bolsa de couro" loading="lazy" width="1024" height="1536"><button type="button" class="provar">Provar na câmera</button></div>
-          <div class="tile__head"><h3>Calça wide leg</h3><strong class="tile__price preco" data-assumed></strong></div>
-          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--secondary add">Pôr na sacola</button></div>
-        </article>
-        <article class="tile span-3" data-id="reta">
-          <div class="tile__media"><img src="img/reta.jpg" alt="Mulher de regata caramelo e calça reta marrom" loading="lazy" width="644" height="796"><button type="button" class="provar">Provar na câmera</button></div>
-          <div class="tile__head"><h3>Calça reta</h3><strong class="tile__price preco" data-assumed></strong></div>
-          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--secondary add">Pôr na sacola</button></div>
-        </article>
-        <article class="tile span-3" data-id="jeans">
-          <div class="tile__media"><img src="img/jeans.jpg" alt="Mulher de calça jeans clara de perna reta" loading="lazy" width="636" height="796"><button type="button" class="provar">Provar na câmera</button></div>
-          <div class="tile__head"><h3>Calça jeans</h3><strong class="tile__price preco" data-assumed></strong></div>
-          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--secondary add">Pôr na sacola</button></div>
-        </article>
+      <p class="manifesto__frase">Durante muito tempo, a moda estabeleceu padrões. Nós acreditamos que o vestir deve acompanhar você, e não o contrário.</p>
+      <div class="manifesto__grade">
+        <figure class="foto foto--larga"><img src="img/sentada.jpg" srcset="img/sentada-640.jpg 640w, img/sentada.jpg 1600w" sizes="(max-width: 767px) 100vw, 50vw" alt="Mulher sentada num degrau de pedra, de regata preta e calça bege de perna larga" loading="lazy" width="1559" height="997"></figure>
+        <figure class="foto foto--alta"><img src="img/depo-1.jpg" alt="Mulher de costas, de regata preta e calça off-white" loading="lazy" width="976" height="2108"></figure>
+        <div class="manifesto__texto">
+          <h2 id="manifesto-h">Calças para quem tem até 1,55m.</h2>
+          <p>Cintura, bolso e barra cortados para a sua altura. Você veste sem ajuste, por R$&nbsp;350.</p>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+
+  <div class="colecao" id="modelos" role="region" aria-labelledby="modelos-h">
+    <div class="wrap">
+      <h2 id="modelos-h">A coleção</h2>
+      <article class="peca" data-id="alfaiataria">
+        <figure class="foto"><img src="img/alfaiataria.jpg?v=2" srcset="img/alfaiataria-640.jpg 640w, img/alfaiataria.jpg?v=2 1600w" sizes="(max-width: 767px) 100vw, 50vw" alt="Mulher de calça de alfaiataria preta e blusa preta de gola alta" loading="lazy" width="1024" height="1536"></figure>
+        <div class="peca__info">
+          <h3>Calça alfaiataria</h3>
+          <p class="peca__linha">Pregas e vinco, para o trabalho.</p>
+          <strong class="preco"></strong>
+          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--primary add">Pôr na sacola</button></div>
+          <div class="peca__mais">
+            <details><summary>Conhecer a calça alfaiataria</summary><ul><li>Cós na cintura, com gancho mais curto</li><li>Bolsos menores e mais altos</li><li>Barra pronta para quem tem até 1,55m</li></ul></details>
+            <button type="button" class="provar">Provar na câmera</button>
+          </div>
+        </div>
+      </article>
+      <article class="peca peca--dir" data-id="wideleg">
+        <figure class="foto"><img src="img/wideleg.jpg?v=2" srcset="img/wideleg-640.jpg 640w, img/wideleg.jpg?v=2 1600w" sizes="(max-width: 767px) 100vw, 50vw" alt="Mulher de camisa branca e calça wide leg bege, com bolsa de couro" loading="lazy" width="1024" height="1536"></figure>
+        <div class="peca__info">
+          <h3>Calça wide leg</h3>
+          <p class="peca__linha">Perna larga do quadril à barra.</p>
+          <strong class="preco"></strong>
+          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--primary add">Pôr na sacola</button></div>
+          <div class="peca__mais">
+            <details><summary>Conhecer a calça wide leg</summary><ul><li>Sarja encorpada, que cai reta</li><li>Bolsos menores e mais altos</li><li>Barra pronta para quem tem até 1,55m</li></ul></details>
+            <button type="button" class="provar">Provar na câmera</button>
+          </div>
+        </div>
+      </article>
+      <article class="peca peca--menor" data-id="reta">
+        <figure class="foto"><img src="img/reta.jpg" alt="Mulher de regata caramelo e calça reta marrom" loading="lazy" width="644" height="796"></figure>
+        <div class="peca__info">
+          <h3>Calça reta</h3>
+          <p class="peca__linha">Perna reta, cintura alta.</p>
+          <strong class="preco"></strong>
+          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--primary add">Pôr na sacola</button></div>
+          <div class="peca__mais">
+            <details><summary>Conhecer a calça reta</summary><ul><li>Cós na cintura, com gancho mais curto</li><li>Botão gravado Seu Jeito</li><li>Barra pronta para quem tem até 1,55m</li></ul></details>
+            <button type="button" class="provar">Provar na câmera</button>
+          </div>
+        </div>
+      </article>
+      <article class="peca peca--menor peca--dir" data-id="jeans">
+        <figure class="foto"><img src="img/jeans.jpg" alt="Mulher de calça jeans clara de perna reta" loading="lazy" width="636" height="796"></figure>
+        <div class="peca__info">
+          <h3>Calça jeans</h3>
+          <p class="peca__linha">Jeans claro de todo dia.</p>
+          <strong class="preco"></strong>
+          <div class="compra"><label>Tamanho<select></select></label><button type="button" class="btn btn--primary add">Pôr na sacola</button></div>
+          <div class="peca__mais">
+            <details><summary>Conhecer a calça jeans</summary><ul><li>Cós na cintura, com gancho mais curto</li><li>Bolsos menores e mais altos</li><li>Barra pronta para quem tem até 1,55m</li></ul></details>
+            <button type="button" class="provar">Provar na câmera</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+  </div>
 
   <!-- photo-chapters: o h2 e a linha, depois quatro capítulos, uma foto cada, nenhuma repetida na página -->
   <section class="section" id="detalhes" data-moment="photo-chapters" aria-labelledby="detalhes-h">
@@ -400,8 +439,9 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   <p>Fique de frente, com o corpo inteiro no quadro. A projeção é uma prévia; o caimento real segue as suas medidas.</p>
 </dialog>
 
-<script src="loja.js?v=8"></script>
+<script src="loja.js?v=10"></script>
 <script type="module" src="provador.js?v=8"></script>
+<script type="module" src="abertura.js?v=3"></script>
 <script type="module" src="assets/system.js"></script>
 <script type="module" src="assets/motion/motion.js"></script>
 <script type="module" src="assets/layout/layout.js"></script>

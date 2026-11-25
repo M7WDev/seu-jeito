@@ -4,10 +4,10 @@ const WHATSAPP = '5511999999999'; // <- número da loja com DDI+DDD
 
 // glb = modelo 3D da calça (provador): de pé, pernas retas, Y pra cima, sem rig. cor = fallback procedural.
 const PRODUTOS = [
-  { id: 'alfaiataria', cor: '#1f1d1c', glb: 'img/calca-alfaiataria.gltf', nome: 'Calça Alfaiataria', sub: 'Elegância sem esforço', preco: 219.9, img: 'img/alfaiataria.jpg' },
-  { id: 'wideleg', cor: '#cbb9a2', glb: 'img/calca-wideleg.gltf',     nome: 'Calça Wide Leg',    sub: 'Moderna e confortável', preco: 199.9, img: 'img/wideleg.jpg' },
-  { id: 'reta', cor: '#4a2f22', glb: 'img/calca-reta.gltf',        nome: 'Calça Reta',        sub: 'Versátil sempre',       preco: 189.9, img: 'img/reta.jpg' },
-  { id: 'jeans', cor: '#8fa9c4', glb: 'img/calca-jeans.gltf',       nome: 'Calça Jeans',       sub: 'O essencial do dia a dia', preco: 179.9, img: 'img/jeans.jpg' },
+  { id: 'alfaiataria', cor: '#1f1d1c', glb: 'img/calca-alfaiataria.gltf', nome: 'Calça Alfaiataria', sub: 'Elegância sem esforço', preco: 350, img: 'img/alfaiataria.jpg' },
+  { id: 'wideleg', cor: '#cbb9a2', glb: 'img/calca-wideleg.gltf',     nome: 'Calça Wide Leg',    sub: 'Moderna e confortável', preco: 350, img: 'img/wideleg.jpg' },
+  { id: 'reta', cor: '#4a2f22', glb: 'img/calca-reta.gltf',        nome: 'Calça Reta',        sub: 'Versátil sempre',       preco: 350, img: 'img/reta.jpg' },
+  { id: 'jeans', cor: '#8fa9c4', glb: 'img/calca-jeans.gltf',       nome: 'Calça Jeans',       sub: 'O essencial do dia a dia', preco: 350, img: 'img/jeans.jpg' },
 ];
 // tamanhos da marca, do menor ao maior (equivalem a PP, P, M e G)
 const TAMANHOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
@@ -30,7 +30,7 @@ function sugerirTamanho(cintura) {
 
 /* ---------- catálogo ---------- */
 function renderCatalogo() {
-  document.querySelectorAll('.tile[data-id]').forEach(card => {
+  document.querySelectorAll('.peca[data-id]').forEach(card => {
     const p = PRODUTOS.find(x => x.id === card.dataset.id);
     card.querySelector('.preco').textContent = brl(p.preco);
     card.querySelector('select').innerHTML = TAMANHOS.map(t => `<option>${t}</option>`).join('');

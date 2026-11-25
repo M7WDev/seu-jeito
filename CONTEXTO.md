@@ -3,11 +3,11 @@
 Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 
 ## Arquivos
-- `index.html` — página inteira, refeita em 2026-11-19 com a skill `design-taste-frontend` (tasteskill). Seções: hero (produto, foto sentada), #modelos (4 cards com tamanho/sacola/provador), #detalhes (momento photo-chapters: cintura, bolso, sarja, botão), #comprimento (faixa escura + botão do provador), #tamanhos (tabela PP–G por cintura), #duvidas (FAQ), footer escuro com o CTA. Depoimentos removidos (eram inventados; voltar só com reviews reais).
+- `index.html` — página inteira, refeita em 2026-11-19 com a skill `design-taste-frontend` (tasteskill). Seções: #abertura (3D), #manifesto, #modelos (coleção, 4 `.peca`), #detalhes (momento photo-chapters: cintura, bolso, sarja, botão), #comprimento (faixa escura + botão do provador), #tamanhos (tabela PP–G por cintura), #duvidas (FAQ), footer escuro com o CTA. Depoimentos removidos (eram inventados; voltar só com reviews reais).
 - `assets/` — cópia parcial do kit da skill (system.css/js, motion, layout, moments/photo-chapters). Não editar: é do kit. CSS próprio fica no `<style>` da página.
 - Look: cores do logo (creme #f7f3ee, marrom #5b3a26, tinta #2c241d), fonte Albert Sans, botões "block". Sacola e diálogos usam `<dialog>` com transição de entrada (fade + blur + escala, @starting-style) inspirada no transitions.dev; badge da sacola pula ao adicionar; campo inválido treme.
 - Fotos: `img/<nome>.jpg` + `img/<nome>-640.jpg` (srcset). Novas vindas do `_assets`: cintura, bolso, sarja, botao, caixa, offwhite, sentada (cta.jpg sem a borda branca).
-- `loja.js` — catálogo (`PRODUTOS`), sacola (dialog `#sacola`) em localStorage, medidas na 1ª compra, checkout → WhatsApp (`WHATSAPP` no topo). Cards = `.tile[data-id]`; botão `[data-provar="<id>"]` abre o provador. Bug corrigido: tamanho ia como `NaN` na sacola (`+select.value`).
+- `loja.js` — catálogo (`PRODUTOS`), sacola (dialog `#sacola`) em localStorage, medidas na 1ª compra, checkout → WhatsApp (`WHATSAPP` no topo). Cards = `.peca[data-id]`; botão `[data-provar="<id>"]` abre o provador. Bug corrigido: tamanho ia como `NaN` na sacola (`+select.value`).
 - Checagem: `node <skill>/scripts/gate.mjs index.html` (Node 22+, Chrome). Saídas em `.taste-skill/` e `shots/` (ignorados no git). Waivers em `.taste-skill/waivers.json`: hero-lines (teste sintético de 40 caracteres) e card-layout (#modelos é line-up de propósito).
 - `provador.js` — provador 3D: câmera + MediaPipe Pose + Three.js (importmap, jsdelivr). Carrega `img/calca-<id>.gltf` (JSON com buffer base64 — o Artifact não serve .glb), auto-rig em 5 ossos (cós, coxas, canelas) por posição dos vértices, ossos posicionados direto via matrixWorld (fora da cena) com câmera ortográfica 1 unidade = 1 px. Sem GLB usa calça procedural (`cor` do produto). `window._provador` expõe funções pra testar sem câmera.
 - `img/` — fotos (JPG ≤1600px, q82) + `logo.svg` (limpa do Inkscape, marrom, sem a linha "FEITA PARA VOCÊ"). `_assets/` = PNGs originais, descartável.
@@ -20,7 +20,13 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 - Calibração (2026-11-20): `calibrar.html` (sem link no site, noindex) — mede a pessoa com fita e com a câmera, guarda os pares em `localStorage.calibracao` do aparelho, mostra erro médio antes/depois e o fator por medida (mínimos quadrados pela origem: Σfita·câmera / Σcâmera²), pronto para colar em `MED.AJUSTE`. Usa `r.bruto` (valor da câmera sem AJUSTE). Exporta CSV e compartilha. CSS da medição/diálogos foi para `medicao.css`, usado pelas duas páginas.
 - Voz na medição: `speechSynthesis` pt-BR (`falar`/`aviso` em provador.js). Só fala aviso que ficou 1 s na tela (eles piscam entre frames), repete a cada 8 s se ela não acertar; troca de fase e fim falam na hora. Botão "Voz ligada/desligada" no cabeçalho, salvo em `localStorage.vozMedicao`.
 
+- Mundo 3D (2026-11-24): `abertura.js` + `abertura.css`. Referência do usuário: igloo.inc, porém bem mais leve. Só Three.js (GSAP, cortinas e relevo saíram). `.mundo` tem um palco sticky atrás de abertura, manifesto e coleção; `emS(scrollY)` converte rolagem em parada 0..6 (0 abertura, 1 manifesto, 2-5 calças, 6 fim). 78 pedras lapidadas (Safira, Esmeralda, Rubi, Turmalina = tamanhos da marca; quatro cortes, quatro InstancedMesh; os blocos de pedra da 1ª versão saíram), uma forma por parada (`formas`), que se rearranjam entre paradas. Cada calça abre com uma pedra; mudar o tamanho no select pinta as pedras da parada (`escolhida`). Brilho = refração falsa no shader (`gema`), sem transmission; perto do ponteiro saem para a frente. Fotos recortadas em `img/modelo-*.webp` (imgly), buscadas perto da parada. As fichas de compra são o HTML normal (`.peca`), presas com sticky. Estática (movimento reduzido, sem WebGL, < 3 GB RAM, < 4 núcleos, economia de dados, 8 s sem carregar, quadro > 70 ms): fotos no lugar da cena; fundos `img/abertura.jpg`/`abertura-celular.jpg` são prints da cena sem frase e modelo, refazer se ela mudar (`window._abertura`). São div, não section: o kit prende a altura de main > section. O PC do usuário tem animações do Windows desligadas, então ele vê a estática até ligar.
+- O conceito do cliente (cena 3D presa à rolagem) vale mais que as regras da skill tasteskill, que proíbe cena em produto; gate não se aplica à abertura.
+
+- Fitas métricas com X na abertura: testadas e removidas a pedido do usuário (2026-11-24). Não recolocar.
+
 ## Decisões
+- Preço único R$ 350 para as 4 calças (2026-11-24, informado pelo usuário).
 - Sem backend: pedido vira mensagem no WhatsApp com itens, dados e medidas. Pix/cartão exige gateway + servidor.
 - Medidas (altura, cintura, quadril, comprimento da perna) salvas em localStorage; tabela cintura→tamanho única (`TABELA_CINTURA`).
 - Provador 3D: ossos rígidos, sem física de tecido (dobras). Tem oclusão, volume por medidas e luz da cena. GLB precisa estar de pé, pernas retas, Y pra cima, sem rig. Juntas do rig por fração da altura em `GEO`. Coxas/canelas nascem onde o osso pai levou a junta (continuidade). Modelo de frente: lado x<cx = perna direita = landmarks pares.
@@ -37,4 +43,4 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 - Pipeline GLB → gltf: `npx @gltf-transform/cli resize --width 1024 --height 1024` → `webp --quality 80` → JSON com buffer base64 (script inline no histórico; refazer se precisar).
 - Número real do WhatsApp em `loja.js`.
 - Fotos em alta do cliente (vindo).
-- Preços reais (placeholders em `PRODUTOS`).
+- Fotos de reta e jeans em alta (640 px, borradas); por isso a coleção mostra as duas menores.

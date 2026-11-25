@@ -1,0 +1,123 @@
+/* Abertura, manifesto e coleção. São div (não section) porque o kit prende a altura de main > section. */
+:root { --editorial: "Bodoni Moda", "Didot", serif; }
+main > section h2, footer h2 { font-family: var(--editorial); letter-spacing: -.015em; }
+
+.abertura { position: relative; height: 100svh; min-height: 480px; background: #efe3d2; color: #3a2416; }
+.mundo { position: relative; }
+.mundo__palco { display: none; }
+.abertura__palco { position: sticky; top: 0; height: 100svh; min-height: 480px; overflow: hidden; background: #ead8b8 url(img/abertura.jpg) 50% 50% / cover; }
+.abertura__claro { position: absolute; inset: 0; background: var(--p-bg); opacity: 0; pointer-events: none; }
+.abertura__pe { position: absolute; inset: auto 0 clamp(12px, 2.4svh, 28px); display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-inline: var(--gut); }
+.abertura__pe a { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-decoration: none; font: 500 13px/1 var(--font-text); letter-spacing: .14em; }
+.abertura__pe a:hover { text-decoration: underline; text-underline-offset: 6px; }
+.abertura__pe span { display: inline-block; margin-left: .6em; animation: desce 2.4s ease-in-out infinite; }
+@keyframes desce { 50% { transform: translateY(5px); } }
+
+/* composição estática: a mesma cena, sem câmera */
+.abertura h1 { position: absolute; inset: 0; margin: 0; max-width: none; font: 600 clamp(40px, min(7vw, 13svh), 150px)/1.12 var(--editorial); letter-spacing: 0; }
+.abertura h1 > span { position: absolute; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 24svh; white-space: nowrap; }
+.abertura h1 > span:nth-child(1) { top: 27.5svh; }
+.abertura h1 > span:nth-child(2) { top: calc(27.5svh + 1.12em); }
+.abertura h1 > span:nth-child(3) { top: calc(27.5svh + 2.24em); }
+.abertura h1 b { font-weight: inherit; }
+.abertura h1 b:first-child { text-align: right; padding-right: 3svh; }
+.abertura__modelo { position: absolute; left: 50%; bottom: 12svh; height: 76svh; width: auto; max-width: none; transform: translateX(-50%); }
+/* com a cena ligada, frase e modelo são desenhadas no canvas; o h1 continua para leitor de tela e busca */
+.cena-3d .abertura h1 { clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+.cena-3d .abertura__modelo { visibility: hidden; }
+@media (max-aspect-ratio: 1/1) {
+  .abertura__palco { background-image: url(img/abertura-celular.jpg); }
+  .abertura h1 b:first-child { padding: 0; }
+  .abertura h1 { font-size: min(12.2vw, 9svh); text-align: center; }
+  .abertura h1 > span { display: block; }
+  .abertura h1 > span:nth-child(1) { top: 11svh; }
+  .abertura h1 > span:nth-child(2) { top: calc(11svh + 1.05em); }
+  .abertura h1 > span:nth-child(3) { top: calc(11svh + 2.1em); }
+  .abertura__modelo { height: 58svh; bottom: 9svh; }
+  .abertura__pe a { font-size: 12px; letter-spacing: .08em; }
+}
+
+.nav { transition: background-color 320ms ease, border-color 320ms ease; }
+.na-abertura .nav:not(.is-open, :hover, :focus-within) { background: transparent; border-color: transparent; }
+.na-abertura .actionbar { transform: translateY(100%) !important; visibility: hidden !important; }
+
+/* manifesto */
+.manifesto { padding: clamp(96px, 20svh, 220px) 0; background: var(--p-bg); }
+.manifesto__frase { margin: 0; max-width: 17em; font: 400 clamp(34px, 5.2vw, 84px)/1.14 var(--editorial); letter-spacing: -.015em; text-wrap: balance; }
+.manifesto__grade { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); margin-top: clamp(96px, 18svh, 200px); align-items: end; }
+.manifesto__grade > .foto--larga { grid-column: 1 / span 7; }
+.manifesto__grade > .foto--alta { grid-column: 10 / span 3; }
+.manifesto__texto { grid-column: 6 / -1; margin-top: clamp(80px, 14svh, 160px); }
+.manifesto__texto h2 { margin: 0; font: 400 clamp(30px, 3.6vw, 56px)/1.15 var(--editorial); letter-spacing: -.015em; }
+.manifesto__texto p { margin: 24px 0 0; max-width: 46ch; font-size: var(--t-lead); line-height: 1.55; color: var(--muted); }
+.foto { margin: 0; overflow: hidden; background: var(--p-surface); }
+.foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.foto--larga { aspect-ratio: 4 / 3; }
+.foto--alta { aspect-ratio: 3 / 5; }
+
+
+/* coleção */
+.colecao { padding: clamp(80px, 12svh, 140px) 0 clamp(96px, 16svh, 180px); background: var(--p-bg); }
+.colecao > .wrap > h2 { margin: 0 0 clamp(48px, 9svh, 96px); font: 400 clamp(44px, 8vw, 128px)/1 var(--editorial); letter-spacing: -.02em; }
+.peca { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; }
+.peca + .peca { margin-top: clamp(96px, 20svh, 200px); }
+.peca .foto { grid-column: 1 / span 6; aspect-ratio: 4 / 5; }
+.peca .foto img { object-position: 50% 0; transition: scale 900ms cubic-bezier(.2, .7, .2, 1); }
+@media (hover: hover) { .peca .foto:hover img { scale: 1.025; } }
+.peca__info { grid-column: 8 / span 5; }
+.peca--dir .foto { grid-column: 7 / span 6; grid-row: 1; }
+.peca--dir .peca__info { grid-column: 1 / span 5; grid-row: 1; }
+/* fotos de 640 px: menores até o cliente mandar em alta */
+.peca--menor .foto { grid-column: 2 / span 4; }
+.peca--menor.peca--dir .foto { grid-column: 8 / span 4; }
+.peca h3 { margin: 0; font: 400 clamp(38px, 5vw, 76px)/1.04 var(--editorial); letter-spacing: -.015em; }
+.peca__linha { margin: 16px 0 0; font-size: var(--t-lead); color: var(--muted); }
+.peca .preco { display: block; margin: 24px 0 0; font-weight: 500; font-size: var(--t-lead); }
+.peca .compra { margin-top: 24px; max-width: 420px; }
+.peca__mais { display: flex; flex-wrap: wrap; gap: 4px 28px; align-items: start; margin-top: 16px; }
+.peca :is(.provar, summary) { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--action); cursor: pointer; list-style: none;
+  font: 500 16px/1 var(--font-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; transition: text-underline-offset 200ms ease; }
+.peca :is(.provar, summary):hover { text-underline-offset: 9px; }
+.peca summary::-webkit-details-marker { display: none; }
+.peca details[open] { flex-basis: 100%; order: 3; }
+.peca details ul { margin: 12px 0 0; padding: 0; list-style: none; max-width: 420px; }
+.peca details li { padding: 12px 0; border-top: 1px solid var(--line); }
+/* mundo 3D ligado: o palco fica preso atrás e as seções passam por cima, sem fundo e sem as fotos (elas estão na cena) */
+.cena-3d .mundo { background: #efe3d2; }
+.cena-3d .mundo__palco { display: block; position: sticky; top: 0; height: 100svh; margin-bottom: -100svh; overflow: hidden; background: url(img/abertura.jpg) 50% 50% / cover; }
+.mundo__palco canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 900ms ease; }
+.cena-pronta .mundo__palco canvas { opacity: 1; }
+.cena-3d :is(.abertura, .abertura__palco, .manifesto, .colecao) { background: none; position: relative; }
+.cena-3d .abertura { height: 170svh; }
+.cena-3d .abertura__palco { height: 100svh; }
+.cena-3d .manifesto { padding: 0; height: 190svh; }
+.cena-3d .manifesto > .wrap { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; }
+.cena-3d .manifesto .foto, .cena-3d .peca .foto, .cena-3d .colecao > .wrap > h2 { display: none; }
+.cena-3d .manifesto__grade { display: block; margin-top: 6svh; }
+.cena-3d .manifesto__texto { margin: 0; }
+.cena-3d .manifesto__texto h2 { font-size: clamp(22px, 2vw, 32px); }
+.cena-3d .manifesto__texto p { margin-top: 10px; color: var(--ink); }
+.cena-3d .colecao { padding: 0 0 12svh; }
+.cena-3d .peca { height: 190svh; align-items: start; margin: 0 !important; }
+.cena-3d .peca__info { position: sticky; top: 0; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; }
+.cena-3d .peca__linha { color: var(--ink); }
+
+@media (max-width: 767px) {
+  .manifesto__grade > .foto--larga, .manifesto__texto { grid-column: 1 / -1; }
+  .manifesto__grade > .foto--alta { grid-column: 5 / -1; margin-top: 48px; }
+  .peca .foto, .peca--dir .foto, .peca--menor .foto, .peca--menor.peca--dir .foto,
+  .peca__info, .peca--dir .peca__info { grid-column: 1 / -1; grid-row: auto; }
+  .peca--menor .foto { margin-right: 18%; }
+  .peca--menor.peca--dir .foto { margin: 0 0 0 18%; }
+  .peca__info { margin-top: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { .abertura__pe span { animation: none; } .nav, .peca .foto img { transition: none; } }
+/* em pé, a ficha desce e a modelo fica acima dela */
+@media (max-aspect-ratio: 1/1) {
+  .cena-3d .mundo__palco { background-image: url(img/abertura-celular.jpg); }
+  .cena-3d .peca__info, .cena-3d .peca--dir .peca__info { grid-column: 1 / -1; margin: 0; justify-content: flex-end; padding-bottom: 88px; }
+  .cena-3d .peca h3 { font-size: 34px; }
+  .cena-3d .peca :is(.preco, .peca__linha) { margin-top: 4px; }
+  .cena-3d .peca .compra { margin-top: 12px; }
+  .cena-3d .peca__mais { margin-top: 4px; }
+}
