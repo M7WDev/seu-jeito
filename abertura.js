@@ -127,8 +127,8 @@ async function cena() {
 
   /* ---------- pedras: os tamanhos da marca, poucas e desfocadas (imagem já desfocada, sem custo de efeito) ---------- */
   const TIPOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
-  const pedraTex = await Promise.all(TIPOS.map(n => carregar.loadAsync(`img/pedra-${n.toLowerCase()}.webp`)));
-  pedraTex.forEach(t => { t.colorSpace = THREE.SRGBColorSpace; });
+  const pedraTex = await Promise.all(TIPOS.map(n => carregar.loadAsync(`img/pedra-${n.toLowerCase()}.webp?v=2`)));
+  pedraTex.forEach(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; });
   // por parada: [lado, altura (-1 a 1 da tela), distância da câmera, tamanho, tipo]
   const PEDRAS = [
     [[-1, -.5, 3, .48, 0], [1.02, .5, 3.2, .42, 2], [.94, -.62, 5.2, .5, 1], [-.9, .62, 5.6, .44, 3], [-.62, -.5, 9.5, .34, 2]],
@@ -152,7 +152,7 @@ async function cena() {
       p.position.set(u.lado * meia * camera.aspect, y + u.alt * meia + Math.sin(t * .5 + u.fase) * .05, -u.k * PASSO + d - u.dist);
       p.material.rotation = Math.sin(t * .22 + u.fase) * .35;
       p.material.opacity = .92 * entre(.7, 2, camera.position.z - p.position.z) * (1 - entre(.55, .9, Math.abs(s - u.k)));
-      p.scale.setScalar(u.tam * 1.5 * (emPe ? .62 : 1));
+      p.scale.setScalar(u.tam * 1.2 * (emPe ? .62 : 1));
     });
   }
 
