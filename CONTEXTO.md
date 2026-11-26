@@ -29,6 +29,8 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 
 - Coleção de alfaiataria (2026-11-25): os 4 modelos agora são todos alfaiataria, em cortes diferentes: reta (preta), pantalona (bege), cenoura (chocolate), cigarrete (caramelo). Fotos geradas no ChatGPT pelo Chrome, com 4 mulheres diferentes de propósito (magra, negra, plus size, 50+). Originais em `_assets/chatgpt` (fora do git); site usa `img/<id>.jpg`, `-640.jpg` e o recorte `img/modelo-<id>.webp`. Modelos 3D do provador: `img/calca-<id>.glb`, gerados por `_assets/gerar-calcas/gerar-calcas.mjs` (duas pernas tubulares que se sobrepõem até o gancho, silhueta por spline, vinco, cor em linear; ~650 KB cada). O ChatGPT fez duas versões (em `_assets/chatgpt/3d*`), recusadas: quadril em bloco com degrau no gancho. Saíram alfaiataria, wideleg e jeans: sacolas antigas com esses ids perdem esses itens ao carregar.
 
+- Detalhes e barra (2026-11-25): a seção "Barra pronta para quem tem até 1,55m" (#comprimento) saiu a pedido do usuário. Os 4 closes de #detalhes agora são das calças da coleção (cós da reta, bolso da pantalona, pregas da cenoura, botão da cigarrete com SEU JEITO SINGELO), gerados no ChatGPT: `img/detalhe-*.jpg`, originais em `_assets/chatgpt/detalhes`.
+
 ## Decisões
 - Preço único R$ 350 para as 4 calças (2026-11-24, informado pelo usuário).
 - Sem backend: pedido vira mensagem no WhatsApp com itens, dados e medidas. Pix/cartão exige gateway + servidor.

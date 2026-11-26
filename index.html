@@ -66,9 +66,6 @@
 .compra .btn { flex: 1 1 140px; }
 @media (max-width: 639px) { .nav__logo img { height: 28px; } }
 
-/* comprimento: a barra no chão */
-#comprimento .frame { height: min(640px, calc(100svh - var(--padt) - var(--padb) - 24px)); }
-#comprimento .frame__img { object-position: 50% 82%; }
 .pic { margin: 0; overflow: hidden; border-radius: var(--r-lg); aspect-ratio: 1; }
 .pic--tall { aspect-ratio: 5 / 4; }
 @media (min-width: 1024px) { #tamanhos .pic { aspect-ratio: auto; height: min(415px, 46svh); } }
@@ -86,7 +83,7 @@
 @media (min-width: 640px) and (max-width: 1279px) { #duvidas { --h: 2; } }
 @media (min-width: 640px) and (max-width: 1023px) { #duvidas .pic { aspect-ratio: 4 / 5; } }
 @media (min-width: 1024px) and (max-width: 1279px) { #duvidas .pic { height: calc(200svh - var(--padt) - var(--padb) - 48px); } }
-@media (max-width: 639px) { #comprimento, #duvidas { --hm: 2; } #comprimento .frame { height: 600px; } }
+@media (max-width: 639px) { #duvidas { --hm: 2; } }
 
 /* sacola e diálogos: transições no estilo transitions.dev (entra com fade, blur e escala; sai rápido) */
 .badge { position: absolute; top: -4px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--action); color: var(--action-ink);
@@ -304,22 +301,22 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
       <div class="mo-ph__head"><h2 id="detalhes-h">Detalhes refeitos para até 1,55m</h2><p>Cintura, bolso e tecido mudam quando a calça é feita para mulheres baixas.</p></div>
       <ol class="mo-ph__list">
         <li class="mo-ph__ch">
-          <figure class="mo-ph__pic"><img src="img/cintura.jpg" srcset="img/cintura-640.jpg 640w, img/cintura.jpg 1600w" sizes="100vw" alt="Cós alto de uma calça terracota com a mão no bolso" width="1200" height="816" loading="lazy"></figure>
+          <figure class="mo-ph__pic"><img src="img/detalhe-cos.jpg" srcset="img/detalhe-cos-640.jpg 640w, img/detalhe-cos.jpg 1536w" sizes="100vw" alt="Cós alto da calça de alfaiataria reta preta, com botão, passantes e o início do vinco" width="1536" height="1024" loading="lazy"></figure>
           <h3>Calça de cintura alta no lugar certo</h3>
           <p>Gancho mais curto: o cós para na cintura, não nas costelas.</p>
         </li>
         <li class="mo-ph__ch">
-          <figure class="mo-ph__pic"><img src="img/bolso.jpg" srcset="img/bolso-640.jpg 640w, img/bolso.jpg 1600w" sizes="100vw" alt="Bolso lateral inclinado de uma calça bege, com passante e vinco" width="1374" height="1145" loading="lazy"></figure>
+          <figure class="mo-ph__pic"><img src="img/detalhe-bolso.jpg" srcset="img/detalhe-bolso-640.jpg 640w, img/detalhe-bolso.jpg 1536w" sizes="100vw" alt="Mão no bolso inclinado da calça de alfaiataria pantalona bege" width="1536" height="1024" loading="lazy"></figure>
           <h3>Bolsos da calça mais altos</h3>
           <p>Menores e mais altos, não abrem quando você senta.</p>
         </li>
         <li class="mo-ph__ch">
-          <figure class="mo-ph__pic"><img src="img/sarja.jpg" srcset="img/sarja-640.jpg 640w, img/sarja.jpg 1600w" sizes="100vw" alt="Sarja bege dobrada, com o fio do tecido em diagonal" width="1374" height="1145" loading="lazy"></figure>
-          <h3>Sarja encorpada na calça inteira</h3>
-          <p>A perna cai reta até a barra, sem colar no corpo.</p>
+          <figure class="mo-ph__pic"><img src="img/detalhe-pregas.jpg" srcset="img/detalhe-pregas-640.jpg 640w, img/detalhe-pregas.jpg 1536w" sizes="100vw" alt="Duas pregas frontais da calça de alfaiataria cenoura marrom chocolate" width="1536" height="1024" loading="lazy"></figure>
+          <h3>Pregas que dão conforto no quadril</h3>
+          <p>O tecido encorpado cai sem marcar, do quadril à barra.</p>
         </li>
         <li class="mo-ph__ch">
-          <figure class="mo-ph__pic"><img src="img/botao.jpg" srcset="img/botao-640.jpg 640w, img/botao.jpg 1600w" sizes="100vw" alt="Botão de madeira gravado Seu Jeito Singelo no cós terracota" width="1036" height="908" loading="lazy"></figure>
+          <figure class="mo-ph__pic"><img src="img/detalhe-botao.jpg" srcset="img/detalhe-botao-640.jpg 640w, img/detalhe-botao.jpg 1536w" sizes="100vw" alt="Botão caramelo gravado Seu Jeito Singelo no cós da calça cigarrete" width="1536" height="1024" loading="lazy"></figure>
           <h3>Botão da calça gravado com a marca</h3>
           <p>Cada calça fecha com o botão Seu Jeito.</p>
         </li>
@@ -327,25 +324,6 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
     </div>
   </section>
 
-  <section class="section ground-inverse" id="comprimento" aria-labelledby="comprimento-h">
-    <div class="wrap grid grid--top">
-      <div class="span-6 split-col">
-        <div class="section-head">
-          <h2 id="comprimento-h">Barra pronta para quem tem até 1,55m</h2>
-          <p>A calça chega no seu comprimento, com salto ou sem. Nada de levar à costureira antes de usar.</p>
-        </div>
-        <ul class="rows rows--spec">
-          <li><span class="rows__name">Altura</span><span class="rows__value">até 1,55m</span></li>
-          <li><span class="rows__name">Barra</span><span class="rows__value">pronta, sem ajuste</span></li>
-          <li><span class="rows__name">Provador</span><span class="rows__value">câmera do celular</span></li>
-        </ul>
-        <div class="btn-row"><button type="button" class="btn btn--secondary" data-provar="pantalona">Provar a pantalona na câmera</button></div>
-      </div>
-      <div class="frame frame--photo span-6 start-7">
-        <img class="frame__img" src="img/hero.jpg" srcset="img/hero-640.jpg 640w, img/hero.jpg 1600w" sizes="(max-width: 639px) 100vw, 50vw" alt="Calça terracota de perna larga com a barra rente ao chão, sobre sandália de salto fino" loading="lazy" data-source="client" data-subject="barra da calça" width="1067" height="1600">
-      </div>
-    </div>
-  </section>
 
   <section class="section" id="tamanhos" aria-labelledby="tamanhos-h">
     <div class="wrap">
@@ -401,7 +379,7 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
           <p class="footer__lede">Calças para mulheres de até 1,55m.</p>
         </div>
         <div class="span-2 start-7 footer__col"><h3>Loja</h3><ul><li><a href="#modelos">Modelos</a></li><li><a href="#tamanhos">Tamanhos</a></li></ul></div>
-        <div class="span-2 footer__col"><h3>Calças</h3><ul><li><a href="#detalhes">Detalhes</a></li><li><a href="#comprimento">Comprimento</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Calças</h3><ul><li><a href="#detalhes">Detalhes</a></li></ul></div>
         <div class="span-2 footer__col"><h3>Ajuda</h3><ul><li><a href="#duvidas">Dúvidas</a></li></ul></div>
       </div>
       <div class="footer__legal">
