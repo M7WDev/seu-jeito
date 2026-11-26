@@ -2,12 +2,12 @@
 // ponytail: sem backend. Pedido vira mensagem no WhatsApp; trocar por API quando tiver gateway de pagamento.
 const WHATSAPP = '5511999999999'; // <- número da loja com DDI+DDD
 
-// glb = modelo 3D da calça (provador): de pé, pernas retas, Y pra cima, sem rig. cor = fallback procedural.
+// glb = modelo 3D da calça (provador): de pé, pernas retas, Y pra cima, sem rig (_assets/gerar-calcas). cor = fallback procedural.
 const PRODUTOS = [
-  { id: 'alfaiataria', cor: '#1f1d1c', glb: 'img/calca-alfaiataria.gltf', nome: 'Calça Alfaiataria', sub: 'Elegância sem esforço', preco: 350, img: 'img/alfaiataria.jpg' },
-  { id: 'wideleg', cor: '#cbb9a2', glb: 'img/calca-wideleg.gltf',     nome: 'Calça Wide Leg',    sub: 'Moderna e confortável', preco: 350, img: 'img/wideleg.jpg' },
-  { id: 'reta', cor: '#4a2f22', glb: 'img/calca-reta.gltf',        nome: 'Calça Reta',        sub: 'Versátil sempre',       preco: 350, img: 'img/reta.jpg' },
-  { id: 'jeans', cor: '#8fa9c4', glb: 'img/calca-jeans.gltf',       nome: 'Calça Jeans',       sub: 'O essencial do dia a dia', preco: 350, img: 'img/jeans.jpg' },
+  { id: 'reta',      cor: '#1e1c1b', glb: 'img/calca-reta.glb',      nome: 'Alfaiataria Reta',      preco: 350, img: 'img/reta-640.jpg' },
+  { id: 'pantalona', cor: '#d6c2a5', glb: 'img/calca-pantalona.glb', nome: 'Alfaiataria Pantalona', preco: 350, img: 'img/pantalona-640.jpg' },
+  { id: 'cenoura',   cor: '#4a2c20', glb: 'img/calca-cenoura.glb',   nome: 'Alfaiataria Cenoura',   preco: 350, img: 'img/cenoura-640.jpg' },
+  { id: 'cigarrete', cor: '#b07a45', glb: 'img/calca-cigarrete.glb', nome: 'Alfaiataria Cigarrete', preco: 350, img: 'img/cigarrete-640.jpg' },
 ];
 // tamanhos da marca, do menor ao maior (equivalem a PP, P, M e G)
 const TAMANHOS = ['Safira', 'Esmeralda', 'Rubi', 'Turmalina'];
@@ -20,7 +20,8 @@ const ls = {
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 const NOME_ANTIGO = { PP: 'Safira', P: 'Esmeralda', M: 'Rubi', G: 'Turmalina' }; // sacolas salvas antes da troca de nomes
-let sacola = ls.get('sacola', []).map(i => ({ ...i, tam: NOME_ANTIGO[i.tam] || i.tam }));
+// sacolas salvas antes da troca de modelos (alfaiataria, wideleg, jeans) perdem os itens que saíram do catálogo, senão a sacola quebra
+let sacola = ls.get('sacola', []).map(i => ({ ...i, tam: NOME_ANTIGO[i.tam] || i.tam })).filter(i => PRODUTOS.some(p => p.id === i.id));
 
 function sugerirTamanho(cintura) {
   let t = TAMANHOS[0];

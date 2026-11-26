@@ -27,6 +27,8 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 
 - Seção das pedras (2026-11-25): `#pedras` (`.joias`, faixa escura) entre o manifesto e a coleção, dentro de `.mundo`: no 3D ela passa por cima do palco como uma cortina. Pedras nítidas em `img/joia-*.webp` (mesmo traçado de raios das desfocadas, sem a lente; `_assets/gerar-pedras`). O texto menor do manifesto virou o parágrafo dos tamanhos próprios; o h2 "Calças para quem tem até 1,55m" saiu (o título da página ainda tem a frase).
 
+- Coleção de alfaiataria (2026-11-25): os 4 modelos agora são todos alfaiataria, em cortes diferentes: reta (preta), pantalona (bege), cenoura (chocolate), cigarrete (caramelo). Fotos geradas no ChatGPT pelo Chrome, com 4 mulheres diferentes de propósito (magra, negra, plus size, 50+). Originais em `_assets/chatgpt` (fora do git); site usa `img/<id>.jpg`, `-640.jpg` e o recorte `img/modelo-<id>.webp`. Modelos 3D do provador: `img/calca-<id>.glb`, gerados por `_assets/gerar-calcas/gerar-calcas.mjs` (duas pernas tubulares que se sobrepõem até o gancho, silhueta por spline, vinco, cor em linear; ~650 KB cada). O ChatGPT fez duas versões (em `_assets/chatgpt/3d*`), recusadas: quadril em bloco com degrau no gancho. Saíram alfaiataria, wideleg e jeans: sacolas antigas com esses ids perdem esses itens ao carregar.
+
 ## Decisões
 - Preço único R$ 350 para as 4 calças (2026-11-24, informado pelo usuário).
 - Sem backend: pedido vira mensagem no WhatsApp com itens, dados e medidas. Pix/cartão exige gateway + servidor.
@@ -45,4 +47,3 @@ Landing page de calças para mulheres até 1,55m. HTML/CSS/JS puro, sem build.
 - Pipeline GLB → gltf: `npx @gltf-transform/cli resize --width 1024 --height 1024` → `webp --quality 80` → JSON com buffer base64 (script inline no histórico; refazer se precisar).
 - Número real do WhatsApp em `loja.js`.
 - Fotos em alta do cliente (vindo).
-- Fotos de reta e jeans em alta (640 px, borradas); por isso a coleção mostra as duas menores.

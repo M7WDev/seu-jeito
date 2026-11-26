@@ -10,7 +10,7 @@ const semCena = () => raiz.classList.remove('cena-3d', 'cena-pronta');
 
 const LINHAS = [['NÃO É', 'VOCÊ'], ['QUE', 'PRECISA'], ['SE', 'AJUSTAR.']];
 const FONTE = '"Bodoni Moda", "Didot", serif';
-const FOTOS = ['hero', null, 'alfaiataria', 'wideleg', 'reta', 'jeans']; // por parada; a 1 é o manifesto
+const FOTOS = ['hero', null, 'reta', 'pantalona', 'cenoura', 'cigarrete']; // por parada; a 1 é o manifesto
 const PASSO = 11; // distância entre paradas
 const entre = (a, b, v) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 const macio = x => x * x * (3 - 2 * x);
