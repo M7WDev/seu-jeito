@@ -56,6 +56,34 @@ main > section h2, footer h2 { font-family: var(--editorial); letter-spacing: -.
 .foto--alta { aspect-ratio: 3 / 5; }
 
 
+/* tamanhos com nomes de pedras: faixa escura, as quatro pedras em destaque */
+.joias { position: relative; padding: clamp(96px, 16svh, 180px) 0; background: var(--p-inv-bg); color: var(--p-inv-ink); overflow: hidden; }
+.joias::before { content: ""; position: absolute; inset: -20% -10% auto; height: 70%; background: radial-gradient(50% 60% at 50% 0%, rgb(247 243 238 / .07), transparent 70%); pointer-events: none; }
+.joias__rotulo { margin: 0; font: 500 13px/1 var(--font-text); letter-spacing: .16em; text-transform: uppercase; color: var(--p-inv-muted); }
+.joias h2 { margin: 20px 0 0; max-width: 12em; font: 400 clamp(44px, 6.4vw, 104px)/1.02 var(--editorial); letter-spacing: -.02em; color: var(--p-inv-ink); }
+.joias__lead { margin: 28px 0 0; max-width: 40ch; font-size: clamp(18px, 1.5vw, 22px); line-height: 1.55; color: var(--p-inv-ink); }
+.joias__lista { list-style: none; margin: clamp(56px, 10svh, 112px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter); }
+.joia { --brilho: 255 255 255; position: relative; display: grid; justify-items: center; text-align: center; padding: clamp(20px, 3vw, 40px) 12px 28px; border-top: 1px solid rgb(247 243 238 / .14); }
+.joia--safira { --brilho: 58 98 214; } .joia--esmeralda { --brilho: 28 150 104; } .joia--rubi { --brilho: 214 40 72; } .joia--turmalina { --brilho: 212 92 150; }
+.joia::before { content: ""; position: absolute; top: 4%; left: 50%; width: 78%; aspect-ratio: 1; translate: -50% 0; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--brilho) / .34), rgb(var(--brilho) / 0)); pointer-events: none; }
+.joia img { position: relative; width: min(100%, 220px); height: auto; filter: drop-shadow(0 18px 24px rgb(0 0 0 / .35)); animation: flutua 6s ease-in-out infinite; transition: scale 500ms cubic-bezier(.2, .7, .2, 1); }
+.joia:nth-child(2) img { animation-delay: -1.5s; } .joia:nth-child(3) img { animation-delay: -3s; } .joia:nth-child(4) img { animation-delay: -4.5s; }
+.joia:hover img { scale: 1.06; }
+@keyframes flutua { 50% { transform: translateY(-10px) rotate(2deg); } }
+.joia h3 { margin: 20px 0 0; font: 400 clamp(28px, 2.6vw, 40px)/1.1 var(--editorial); color: var(--p-inv-ink); }
+.joia p { margin: 8px 0 0; font-size: var(--t-small); text-wrap: balance; color: var(--p-inv-muted); }
+.joias__pe { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; margin-top: clamp(48px, 8svh, 88px); }
+.joias__pe p { grid-column: 1 / span 7; margin: 0; font-size: var(--t-lead); line-height: 1.6; color: var(--p-inv-ink); }
+.joias__pe a { grid-column: 10 / -1; justify-self: end; display: inline-flex; align-items: center; min-height: 44px; color: var(--p-inv-ink); font: 500 16px/1 var(--font-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; transition: text-underline-offset 200ms ease; }
+.joias__pe a:hover { text-underline-offset: 9px; }
+@media (max-width: 767px) {
+  .joias__lista { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 8px; }
+  .joia img { width: min(100%, 150px); }
+  .joias__pe p, .joias__pe a { grid-column: 1 / -1; justify-self: start; }
+  .joias__pe a { margin-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .joia img { animation: none; transition: none; } }
+
 /* coleção */
 .colecao { padding: clamp(80px, 12svh, 140px) 0 clamp(96px, 16svh, 180px); background: var(--p-bg); }
 .colecao > .wrap > h2 { margin: 0 0 clamp(48px, 9svh, 96px); font: 400 clamp(44px, 8vw, 128px)/1 var(--editorial); letter-spacing: -.02em; }
@@ -95,8 +123,7 @@ main > section h2, footer h2 { font-family: var(--editorial); letter-spacing: -.
 .cena-3d .manifesto .foto, .cena-3d .peca .foto, .cena-3d .colecao > .wrap > h2 { display: none; }
 .cena-3d .manifesto__grade { display: block; margin-top: 6svh; }
 .cena-3d .manifesto__texto { margin: 0; }
-.cena-3d .manifesto__texto h2 { font-size: clamp(22px, 2vw, 32px); }
-.cena-3d .manifesto__texto p { margin-top: 10px; color: var(--ink); }
+.cena-3d .manifesto__texto p { margin-top: 0; color: var(--ink); }
 .cena-3d .colecao { padding: 0 0 12svh; }
 .cena-3d .peca { height: 190svh; align-items: start; margin: 0 !important; }
 .cena-3d .peca__info { position: sticky; top: 0; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; }

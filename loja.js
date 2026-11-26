@@ -79,19 +79,69 @@ function abrirCheckout() {
   fecharSacola();
   const dlg = document.getElementById('checkout');
   const med = ls.get('medidas');
-  dlg.querySelector('.passo-medidas').hidden = !!med;
-  dlg.querySelector('.medidas-salvas').hidden = !med;
-  if (med) dlg.querySelector('.medidas-salvas span').textContent =
-    `${med.altura} cm · cintura ${med.cintura} · quadril ${med.quadril} · comp. ${med.comprimento}`;
+  mostrarMedidas(med);
   const cli = ls.get('cliente');
   if (cli) for (const k in cli) dlg.querySelector(`[name=${k}]`) && (dlg.querySelector(`[name=${k}]`).value = cli[k]);
   if (!med) resetMedicao(dlg.querySelector('form'));
   dlg.showModal();
 }
 
+// com medidas salvas, a etapa some e precisa ficar desabilitada: campo obrigatório escondido trava o envio do pedido
+function mostrarMedidas(med) {
+  const dlg = document.getElementById('checkout'), passo = dlg.querySelector('.passo-medidas');
+  passo.hidden = passo.disabled = !!med;
+  dlg.querySelector('.medidas-salvas').hidden = !med;
+  if (med) dlg.querySelector('.medidas-salvas span').textContent =
+    `${med.altura} cm · cintura ${med.cintura} · quadril ${med.quadril} · comp. ${med.comprimento}`;
+}
+
 /* ---------- medidas pela câmera: a cliente só digita a altura ---------- */
+const K_MED = ['cintura', 'quadril', 'comprimento'];
 // o que a câmera mediu, antes de a cliente corrigir: vai no pedido quando ela muda algo (dado pra calibrar a medição)
 let medCamera = null;
+// confirmação ou correção da cliente → par câmera × real que o provador.js usa pra ajustar as próximas medições neste aparelho.
+// Mexer de novo na mesma medição troca o par em vez de somar outro.
+function registrarCorrecao(camera, real) {
+  if (!camera?.bruto) return;
+  const par = { data: camera.data, altura: real.altura, bruto: camera.bruto, real: {}, diferenca: {} };
+  K_MED.forEach(k => { par.real[k] = real[k]; par.diferenca[k] = real[k] - camera[k]; });
+  ls.set('correcoesCamera', [...ls.get('correcoesCamera', []).filter(c => c.data !== par.data), par].slice(-20));
+}
+// tela de conferência: mostra os valores; resolve com as medidas confirmadas/corrigidas, 'denovo' ou null (fechou)
+function confirmarMedidas(m, corrigindo = false) {
+  const dlg = document.getElementById('confirmar'), f = dlg.querySelector('form');
+  const sugestao = () => { dlg.querySelector('.sugestao').textContent = +f.cintura.value ? `Sugerimos o tamanho ${sugerirTamanho(+f.cintura.value)}` : ''; };
+  const modo = c => {
+    dlg.querySelector('.achadas').hidden = c;
+    const campos = dlg.querySelector('.campos'); campos.hidden = campos.disabled = !c;
+    dlg.querySelector('.confirmar-texto').textContent = c ? 'Confira com uma fita métrica e corrija o que estiver diferente.' : 'Estas são as medidas que a câmera encontrou. Acertamos?';
+    dlg.querySelector('.ok').textContent = c ? 'Salvar medidas' : 'Sim, confirmar';
+    dlg.querySelector('.corrigir').hidden = c;
+    if (c && dlg.open) f.cintura.focus();
+  };
+  K_MED.forEach(k => { f[k].value = m[k]; dlg.querySelector(`[data-m=${k}]`).textContent = `${m[k]} cm`; });
+  dlg.querySelector('[data-m=altura]').textContent = `${m.altura} cm`;
+  modo(corrigindo); sugestao();
+  f.cintura.oninput = sugestao;
+  dlg.querySelector('.corrigir').onclick = () => modo(true);
+  return new Promise(resolve => {
+    let r = null;
+    f.onsubmit = e => { e.preventDefault(); r = { altura: m.altura }; K_MED.forEach(k => { r[k] = Math.round(+f[k].value); }); dlg.close(); };
+    dlg.querySelector('.denovo').onclick = () => { r = 'denovo'; dlg.close(); };
+    dlg.querySelector('.confirmar-fechar').onclick = () => dlg.close();
+    dlg.onclose = () => resolve(r);
+    dlg.showModal();
+  });
+}
+function salvarMedidas(m, camera) {
+  const med = { ...m, camera };
+  ls.set('medidas', med); registrarCorrecao(camera, med); mostrarMedidas(med);
+}
+async function editarMedidas(f) {
+  const med = ls.get('medidas'), r = await confirmarMedidas(med, true);
+  if (r === 'denovo') { mostrarMedidas(null); resetMedicao(f); f.altura.value = med.altura; f.altura.focus(); }
+  else if (r) salvarMedidas(r, med.camera);
+}
 function resetMedicao(f) {
   medCamera = null;
   ['cintura', 'quadril', 'comprimento'].forEach(k => { f[k].value = ''; f[k].required = false; });
@@ -107,14 +157,12 @@ async function medirPelaCamera(f) {
   try {
     if (!window.medirCorpo) throw new Error('erro');
     const r = await window.medirCorpo(+f.altura.value);
-    f.cintura.value = r.cintura; f.quadril.value = r.quadril; f.comprimento.value = r.comprimento;
-    medCamera = { cintura: r.cintura, quadril: r.quadril, comprimento: r.comprimento };
-    // a câmera erra alguns cm: mostra os valores em campos editáveis pra cliente conferir com a fita
-    f.querySelector('.manual').hidden = false;
-    ['cintura', 'quadril', 'comprimento'].forEach(k => (f[k].required = true));
-    msg.textContent = 'Pronto. Confira as medidas abaixo; se alguma estiver diferente da sua fita métrica, é só corrigir.';
-    f.querySelector('.medir-btn').textContent = 'Medir de novo';
-    calcSugestao(f);
+    const camera = { cintura: r.cintura, quadril: r.quadril, comprimento: r.comprimento, bruto: r.bruto, data: new Date().toISOString() };
+    const final = await confirmarMedidas(r);
+    if (final === 'denovo') return medirPelaCamera(f);
+    if (!final) { resetMedicao(f); msg.textContent = 'Falta confirmar as medidas. Meça de novo para continuar.'; return; }
+    medCamera = camera;
+    salvarMedidas(final, camera);
   } catch (e) {
     if (e.message === 'cancelada') return;
     medCamera = null;
@@ -127,7 +175,7 @@ async function medirPelaCamera(f) {
       : 'A medição não funciona neste navegador. Digite as medidas abaixo.';
   }
 }
-const ajustou = m => m?.camera && ['cintura', 'quadril', 'comprimento'].some(k => m.camera[k] !== m[k]);
+const ajustou = m => m?.camera && K_MED.some(k => m.camera[k] !== m[k]);
 function calcSugestao(form) {
   const c = +form.cintura.value;
   form.querySelector('.sugestao').textContent = c ? `Sugerimos o tamanho ${sugerirTamanho(c)}` : '';
@@ -170,5 +218,5 @@ document.addEventListener('DOMContentLoaded', () => {
   f.onsubmit = finalizar;
   f.cintura.oninput = () => calcSugestao(f);
   f.querySelector('.medir-btn').onclick = () => medirPelaCamera(f);
-  document.querySelector('.editar-medidas').onclick = () => { localStorage.removeItem('medidas'); abrirCheckout(); };
+  document.querySelector('.editar-medidas').onclick = () => editarMedidas(f);
 });

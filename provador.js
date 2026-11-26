@@ -272,9 +272,24 @@ window.fecharProvador = function () {
 /* ---------- medição pela câmera: altura informada → cintura, quadril e comprimento ----------
    Altura em cm ÷ altura da silhueta em px = cm por px. Duas posições: de frente dá a largura da cintura e do quadril,
    de lado dá a profundidade nas mesmas alturas; a volta é a elipse com esses dois eixos.
-   ponytail: elipse + máscara do MediaPipe (erro típico de 2 a 4 cm). AJUSTE calibra contra fita métrica; upgrade = modelo
+   ponytail: elipse + máscara do MediaPipe (erro típico de 2 a 4 cm). AJUSTE calibra contra fita métrica e fatores() soma o que
+   as clientes confirmaram ou corrigiram neste aparelho; upgrade = modelo
    de corpo (SMPL) ou mais vistas. */
 const MED = { amostras: 12, AJUSTE: { cintura: 1, quadril: 1, comprimento: 1 } };
+// fator por medida: pares câmera × real deste aparelho (loja.js grava em 'correcoesCamera'). Mínimos quadrados pela origem, com o
+// AJUSTE valendo meio par, pra uma correção só não mandar sozinha. Correção acima de 20% é tida como erro de digitação e não conta.
+// shortcut: vale só neste aparelho (site sem servidor); para juntar todas as clientes, enviar os pares a um servidor.
+function fatores(pares) {
+  const r = {};
+  for (const k of ['cintura', 'quadril', 'comprimento']) {
+    const base = MED.AJUSTE[k], bons = (Array.isArray(pares) ? pares : []).filter(p => p?.bruto?.[k] > 0 && p.real?.[k] > 0 && Math.abs(p.real[k] / (p.bruto[k] * base) - 1) <= .2);
+    if (!bons.length) { r[k] = base; continue; }
+    const soma = f => bons.reduce((s, p) => s + f(p), 0), bb = soma(p => p.bruto[k] ** 2), peso = .5 * bb / bons.length;
+    r[k] = (soma(p => p.bruto[k] * p.real[k]) + base * peso) / (bb + peso);
+  }
+  return r;
+}
+const lerCorrecoes = () => { try { return JSON.parse(localStorage.getItem('correcoesCamera')); } catch { return null; } };
 let med, vMed, ctxMed, ctxMask, fonte, corte; // fonte = canvas em pé que vai pro Pose (o vídeo recortado)
 
 // máscara de segmentação → grade 0/1 pequena (240 px de largura basta pra medir e é rápida)
@@ -381,20 +396,19 @@ function medir(r) {
   const f = med.frente, pc = mediana(med.lista.map(s => s.cint)), pq = mediana(med.lista.map(s => s.quad));
   // bruto = antes do AJUSTE: é o que a calibração (calibrar.html) compara com a fita
   const bruto = { cintura: elipse(f.cint, pc), quadril: elipse(f.quad, pq), comprimento: f.perna };
+  const calc = fat => ({ cintura: Math.round(bruto.cintura * fat.cintura), quadril: Math.round(bruto.quadril * fat.quadril), comprimento: Math.round(bruto.comprimento * fat.comprimento) });
+  const puro = calc(MED.AJUSTE); // a leitura é julgada sem as correções, senão uma correção ruim faria recusar leituras boas
   const res = {
-    altura: med.altura,
-    cintura: Math.round(bruto.cintura * MED.AJUSTE.cintura),
-    quadril: Math.round(bruto.quadril * MED.AJUSTE.quadril),
-    comprimento: Math.round(bruto.comprimento * MED.AJUSTE.comprimento),
+    altura: med.altura, ...calc(fatores(lerCorrecoes())),
     bruto: { cintura: +bruto.cintura.toFixed(1), quadril: +bruto.quadril.toFixed(1), comprimento: +bruto.comprimento.toFixed(1) },
   };
   // fora do que a tabela atende = leitura ruim (roupa larga, fundo confuso): mede de novo em vez de salvar lixo
-  if (res.cintura < 55 || res.cintura > 120 || res.quadril < 70 || res.quadril > 140 || res.quadril < res.cintura || res.comprimento < 60 || res.comprimento > 110) {
+  if (puro.cintura < 55 || puro.cintura > 120 || puro.quadril < 70 || puro.quadril > 140 || puro.quadril < puro.cintura || puro.comprimento < 60 || puro.comprimento > 110) {
     med.passo = 'frente'; med.lista = []; med.frente = null; med.barra.style.width = '0%';
     med.passos.forEach(p => p.classList.remove('feito', 'agora')); med.passos[0].classList.add('agora');
     return aviso('A leitura não ficou boa. Com roupa justa e fundo liso, fique de frente de novo.', true);
   }
-  falar('Pronto, medidas feitas. Pode voltar ao celular.', true);
+  falar('Pronto, medidas feitas. Volte ao celular para conferir.', true);
   pararMedicao(false); med.ok(res);
 }
 /* ---------- voz: a cliente está a 2,5 m e não lê a tela ----------
@@ -479,6 +493,6 @@ window.medirCorpo = function (altura) {
 };
 
 // exposto pra teste sem câmera
-window._medicao = { lerMascara, largura, topo, elipse, amostraFrente, amostraLado, set: v => { med = v; } };
+window._medicao = { fatores, medir, lerMascara, largura, topo, elipse, amostraFrente, amostraLado, set: v => { med = v; } };
 window._provador = { carregarLibs, carregarMalha, montarCena, desenhar, casarLuz,
   setVideo: v => { video = v; }, get: () => ({ THREE, scene, cam, skinned, ossos, bind, ceu, luz, ctx }) };

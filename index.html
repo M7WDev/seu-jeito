@@ -43,7 +43,7 @@
 <link rel="modulepreload" href="assets/moments/lib.js">
 <link rel="modulepreload" href="assets/moments/photo-chapters/moment.js">
 <link rel="stylesheet" href="medicao.css?v=1">
-<link rel="stylesheet" href="abertura.css?v=5">
+<link rel="stylesheet" href="abertura.css?v=6">
 <link rel="preload" as="image" href="img/modelo-hero.webp">
 <script>
 /* cena 3D só em aparelho que aguenta; senão fica a composição estática */
@@ -130,6 +130,18 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
 .medir .btn { width: 100%; }
 .medidas-camera { margin: var(--s-3) 0 0; }
 .medidas-camera:empty { display: none; }
+#confirmar { width: min(480px, calc(100% - 32px)); }
+#confirmar form > :not(.dlg-head) { margin-inline: var(--s-6); }
+#confirmar .confirmar-texto { margin-block: var(--s-5) var(--s-4); }
+#confirmar .campos { border: 0; padding: 0; min-width: 0; }
+#confirmar [hidden] { display: none; }
+.achadas { margin-block: 0; }
+.achadas div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.achadas dt { color: var(--muted); }
+.achadas dd { margin: 0; font-size: 22px; font-weight: 500; }
+.confirmar-acoes { display: grid; gap: var(--s-3); padding-block: var(--s-5) var(--s-6); }
+.confirmar-acoes .btn { width: 100%; margin: 0; }
+.confirmar-acoes .denovo { min-height: 44px; border: 0; background: none; color: var(--action); font: 500 16px var(--font-text); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .medidas-camera.erro { color: #a3341f; }
 @media (prefers-reduced-motion: reduce) { dialog, dialog::backdrop { transition: none; } .badge.bump, .campos input:user-invalid { animation: none; } }
 </style>
@@ -179,16 +191,50 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
     </div>
   </div>
 
-  <div class="manifesto" id="manifesto" role="region" aria-labelledby="manifesto-h">
+  <div class="manifesto" id="manifesto" role="region" aria-label="Manifesto">
     <div class="wrap">
       <p class="manifesto__frase">Durante muito tempo, a moda estabeleceu padrões. Nós acreditamos que o vestir deve acompanhar você, e não o contrário.</p>
       <div class="manifesto__grade">
         <figure class="foto foto--larga"><img src="img/sentada.jpg" srcset="img/sentada-640.jpg 640w, img/sentada.jpg 1600w" sizes="(max-width: 767px) 100vw, 50vw" alt="Mulher sentada num degrau de pedra, de regata preta e calça bege de perna larga" loading="lazy" width="1559" height="997"></figure>
         <figure class="foto foto--alta"><img src="img/depo-1.jpg" alt="Mulher de costas, de regata preta e calça off-white" loading="lazy" width="976" height="2108"></figure>
         <div class="manifesto__texto">
-          <h2 id="manifesto-h">Calças para quem tem até 1,55m.</h2>
-          <p>Cintura, bolso e barra cortados para a sua altura. Você veste sem ajuste, por R$&nbsp;350.</p>
+          <p>Você merece uma calça pensada em cada detalhe. Desenvolvemos nossos próprios tamanhos, considerando as proporções de quem a veste, para oferecer uma experiência de caimento mais precisa e confortável.</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- os tamanhos com nomes de pedras: faixa escura que passa por cima do mundo 3D; pedras nítidas (img/joia-*.webp, mesmo traçado de raios das desfocadas) -->
+  <div class="joias" id="pedras" role="region" aria-labelledby="pedras-h">
+    <div class="wrap">
+      <p class="joias__rotulo">Nossos tamanhos</p>
+      <h2 id="pedras-h">Cada mulher é preciosa.</h2>
+      <p class="joias__lead">Por isso nossos tamanhos têm nomes de pedras preciosas. Acreditamos que cada mulher tem a sua singularidade, e cada medida merece o cuidado que se dá a uma joia.</p>
+      <ul class="joias__lista">
+        <li class="joia joia--safira">
+          <img src="img/joia-safira.webp" alt="" width="480" height="480" loading="lazy">
+          <h3>Safira</h3>
+          <p>Cintura até 69 cm</p>
+        </li>
+        <li class="joia joia--esmeralda">
+          <img src="img/joia-esmeralda.webp" alt="" width="480" height="480" loading="lazy">
+          <h3>Esmeralda</h3>
+          <p>Cintura de 70 a 77 cm</p>
+        </li>
+        <li class="joia joia--rubi">
+          <img src="img/joia-rubi.webp" alt="" width="480" height="480" loading="lazy">
+          <h3>Rubi</h3>
+          <p>Cintura de 78 a 85 cm</p>
+        </li>
+        <li class="joia joia--turmalina">
+          <img src="img/joia-turmalina.webp" alt="" width="480" height="480" loading="lazy">
+          <h3>Turmalina</h3>
+          <p>Cintura a partir de 86 cm</p>
+        </li>
+      </ul>
+      <div class="joias__pe">
+        <p>Essas medidas foram criadas por nós, com base em ciência e nas proporções de quem veste. Assim a calça chega até você do jeito certo, sem precisar de ajustes.</p>
+        <a href="#tamanhos">Ver a tabela de tamanhos</a>
       </div>
     </div>
   </div>
@@ -388,7 +434,7 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
         <div class="medir"><button type="button" class="btn btn--secondary medir-btn">Medir com a câmera</button></div>
       </div>
       <p class="medidas-camera" role="status"></p>
-      <!-- preenchidos pela câmera; viram campos de digitar só quando a câmera não abre -->
+      <!-- campos de digitar: só quando a câmera não abre (com câmera, a conferência é no diálogo #confirmar) -->
       <div class="campos manual" hidden>
         <label>Cintura (cm)<input name="cintura" type="number" min="55" max="120" inputmode="numeric"></label>
         <label>Quadril (cm)<input name="quadril" type="number" min="70" max="140" inputmode="numeric"></label>
@@ -433,14 +479,39 @@ dialog.sacola:not([open]) { transform: translateX(100%); opacity: 1; }
   </div>
 </dialog>
 
+<!-- depois da câmera: a cliente confirma ou corrige; o resultado também calibra as próximas medições (loja.js, provador.js) -->
+<dialog id="confirmar" aria-labelledby="confirmar-h">
+  <form method="dialog">
+    <div class="dlg-head"><h3 id="confirmar-h">Confira suas medidas</h3><button type="button" class="confirmar-fechar" aria-label="Fechar sem salvar">×</button></div>
+    <p class="confirmar-texto" aria-live="polite"></p>
+    <dl class="achadas">
+      <div><dt>Altura</dt><dd data-m="altura"></dd></div>
+      <div><dt>Cintura</dt><dd data-m="cintura"></dd></div>
+      <div><dt>Quadril</dt><dd data-m="quadril"></dd></div>
+      <div><dt>Comprimento da perna</dt><dd data-m="comprimento"></dd></div>
+    </dl>
+    <fieldset class="campos" hidden disabled aria-label="Corrigir medidas">
+      <label>Cintura (cm)<input name="cintura" type="number" min="55" max="120" required inputmode="numeric"></label>
+      <label>Quadril (cm)<input name="quadril" type="number" min="70" max="140" required inputmode="numeric"></label>
+      <label class="full">Comprimento da perna (cm)<input name="comprimento" type="number" min="60" max="110" required inputmode="numeric"><small>Da cintura até o chão, descalça.</small></label>
+    </fieldset>
+    <p class="sugestao" aria-live="polite"></p>
+    <div class="confirmar-acoes">
+      <button type="submit" class="btn btn--primary ok">Sim, confirmar</button>
+      <button type="button" class="btn btn--secondary corrigir">Corrigir valores</button>
+      <button type="button" class="denovo">Medir de novo</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="provador" aria-labelledby="provador-h">
   <div class="dlg-head"><h3 id="provador-h">Provador</h3><button type="button" onclick="fecharProvador()" aria-label="Fechar provador">×</button></div>
   <div class="cam"><video playsinline muted hidden></video><canvas></canvas><p class="status"></p></div>
   <p>Fique de frente, com o corpo inteiro no quadro. A projeção é uma prévia; o caimento real segue as suas medidas.</p>
 </dialog>
 
-<script src="loja.js?v=10"></script>
-<script type="module" src="provador.js?v=8"></script>
+<script src="loja.js?v=11"></script>
+<script type="module" src="provador.js?v=9"></script>
 <script type="module" src="abertura.js?v=5"></script>
 <script type="module" src="assets/system.js"></script>
 <script type="module" src="assets/motion/motion.js"></script>
